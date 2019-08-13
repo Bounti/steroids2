@@ -5,7 +5,8 @@ use ieee.numeric_std.all;
 entity fifo_ram is
   generic(
     width: natural := 32;
-    addr_size: natural := 10
+    addr_size: natural := 10;
+    full_threshold : natural := 0
   );
   port(
     aclk:  in  std_logic;
@@ -96,6 +97,6 @@ begin
   end process state_proc;
   
   empty <= '1' when state.cnt = 0 else '0';
-  full  <= '1' when state.cnt = 2**addr_size else '0';
+  full  <= '1' when state.cnt = (2**addr_size)-full_threshold else '0';
  
 end architecture beh;

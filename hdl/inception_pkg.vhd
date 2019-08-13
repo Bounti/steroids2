@@ -3,12 +3,6 @@ use ieee.std_logic_1164.all;
 
 package inception_pkg is
 
-  ----------------
-  -- PARAMETERS --
-  ----------------
-  constant SYN_DEBUG         : boolean := true; -- enable led/sw etc. hardware for debug
-  constant SIM_SYN_N         : boolean := true; --false; -- 1 simulation 0 synthesizable
-
   ---------------------
   -- JTAG TAP STATES --
   ---------------------
@@ -34,7 +28,4 @@ package inception_pkg is
   constant NSTEPS_RD            : natural := 5;
   constant NSTEPS_RST           : natural := 6;
 
-  -- ADDRESSES
-  constant IRQ_ID_ADDR_DEFAULT_LPC1850      : std_logic_vector(31 downto 0) := x"10002000";
-  constant IRQ_ID_ADDR_DEFAULT_STM32L152RE  : std_logic_vector(31 downto 0) := x"20002000";
 end package inception_pkg;

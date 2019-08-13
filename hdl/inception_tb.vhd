@@ -34,12 +34,8 @@ architecture beh of inception_tb is
     aclk:       in std_logic;  -- Clock
     aresetn:    in std_logic;  -- Synchronous, active low, reset
     
-   -- btn1_re,btn2_re:in std_logic;  -- Command button
-   -- sw:             in  std_logic_vector(3 downto 0); -- Slide switches
     led:            out std_logic_vector(3 downto 0); -- LEDs
     jtag_state_led: out std_logic_vector(3 downto 0);
-    r:              in std_ulogic_vector(31 downto 0);
-    status:         out std_ulogic_vector(31 downto 0);
     
     irq_in: in std_logic;
     irq_ack: out std_logic;
@@ -88,12 +84,8 @@ architecture beh of inception_tb is
     signal aclk:        std_logic;  -- Clock
     signal aresetn:     std_logic;  -- Synchronous, active low, reset
     
-    --signal btn1_re,btn2_re:          std_logic;  -- Command button
-    --signal sw:              std_logic_vector(3 downto 0); -- Slide switches
     signal led:             std_logic_vector(3 downto 0); -- LEDs
     signal jtag_state_led:  std_logic_vector(3 downto 0);
-    signal r:               std_ulogic_vector(31 downto 0);
-    signal status:          std_ulogic_vector(31 downto 0);
     
     signal irq_in, irq_ack:    std_logic;
     ----------------------
@@ -133,13 +125,8 @@ architecture beh of inception_tb is
     aclk => aclk,
     aresetn => aresetn,
     
-    --btn1_re => btn1_re,
-    --btn2_re => btn2_re,
-    --sw => sw,
     led => led,
     jtag_state_led => jtag_state_led,
-    r => r,
-    status => status,
     
     irq_in => irq_in,
     irq_ack => irq_ack,
@@ -178,16 +165,17 @@ architecture beh of inception_tb is
    wait for 5 ns;
  end process;
 
- irq_gen_proc: process
- begin
-   irq_loop: for i in 0 to 2 loop
-     irq_in <= '0';
-     wait for 457*10 ns;
-     irq_in <= '1';
-     wait until irq_ack = '1';
-   end loop irq_loop;
-   wait;
- end process;
+ irq_in <= '0';
+-- irq_gen_proc: process
+-- begin
+--   irq_loop: for i in 0 to 2 loop
+--     irq_in <= '0';
+--     wait for 457*10 ns;
+--     irq_in <= '1';
+--     wait until irq_ack = '1';
+--   end loop irq_loop;
+--   wait;
+-- end process;
 
  o_proc: process(TCK)
 
