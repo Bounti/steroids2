@@ -4,7 +4,6 @@ add wave -noupdate -divider {fpga clk}
 add wave -noupdate /inception_tb/aclk
 add wave -noupdate /inception_tb/aresetn
 add wave -noupdate -divider {fpga debug io}
-add wave -noupdate /inception_tb/sw
 add wave -noupdate /inception_tb/led
 add wave -noupdate /inception_tb/jtag_state_led
 add wave -noupdate /inception_tb/r
@@ -59,7 +58,22 @@ add wave -noupdate /inception_tb/dut/jtag_state_end
 add wave -noupdate /inception_tb/dut/jtag_state_current
 add wave -noupdate /inception_tb/dut/jtag_di
 add wave -noupdate /inception_tb/dut/jtag_do
-add wave -noupdate -childformat {{/inception_tb/dut/jtag_state.step -radix unsigned} {/inception_tb/dut/jtag_state.size -radix unsigned} {/inception_tb/dut/jtag_state.number -radix unsigned}} -expand -subitemconfig {/inception_tb/dut/jtag_state.step {-height 17 -radix unsigned -radixshowbase 0} /inception_tb/dut/jtag_state.size {-height 17 -radix unsigned -radixshowbase 0} /inception_tb/dut/jtag_state.number {-height 17 -radix unsigned -radixshowbase 0}} /inception_tb/dut/jtag_state
+add wave -noupdate /inception_tb/dut/usb_to_jtag_state
+add wave -noupdate /inception_tb/dut/cmd_read_state
+add wave -noupdate /inception_tb/dut/jtag_cmd_dec
+add wave -noupdate /inception_tb/dut/jtag_cmd_put
+add wave -noupdate /inception_tb/dut/jtag_cmd_full
+add wave -noupdate /inception_tb/dut/jtag_cmd_empty
+add wave -noupdate /inception_tb/dut/jtag_cmd_din
+add wave -noupdate /inception_tb/dut/jtag_cmd_dout
+add wave -noupdate -divider {ring jtag cmd fifo}
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/wr_en
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/dec
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/full
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/empty
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/wr_data
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/rd_data
+add wave -noupdate /inception_tb/dut/ring_buffer_inst/ram
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {0 ns} 0}
 quietly wave cursor active 1
