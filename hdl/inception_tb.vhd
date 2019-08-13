@@ -25,12 +25,17 @@ end entity inception_tb;
 architecture beh of inception_tb is
   
   component inception is
-  port(
+  Generic (
+    PERIOD_RANGE    : natural := 31;
+    BIT_COUNT_SIZE  : natural := 6;
+    MAX_IO_REG_SIZE : natural := 43       
+  );
+  Port (
     aclk:       in std_logic;  -- Clock
     aresetn:    in std_logic;  -- Synchronous, active low, reset
     
-    btn1_re,btn2_re:in std_logic;  -- Command button
-    sw:             in  std_logic_vector(3 downto 0); -- Slide switches
+   -- btn1_re,btn2_re:in std_logic;  -- Command button
+   -- sw:             in  std_logic_vector(3 downto 0); -- Slide switches
     led:            out std_logic_vector(3 downto 0); -- LEDs
     jtag_state_led: out std_logic_vector(3 downto 0);
     r:              in std_ulogic_vector(31 downto 0);
@@ -41,7 +46,7 @@ architecture beh of inception_tb is
     ----------------------
     -- jtag ctrl master --
     ----------------------
-    period          : in  natural range 1 to 31;
+   -- period          : in  natural range 1 to 31;
     TDO		    : in  STD_LOGIC;
     TCK		    : out  STD_LOGIC;
     TMS		    : out  STD_LOGIC;
@@ -83,8 +88,8 @@ architecture beh of inception_tb is
     signal aclk:        std_logic;  -- Clock
     signal aresetn:     std_logic;  -- Synchronous, active low, reset
     
-    signal btn1_re,btn2_re:          std_logic;  -- Command button
-    signal sw:              std_logic_vector(3 downto 0); -- Slide switches
+    --signal btn1_re,btn2_re:          std_logic;  -- Command button
+    --signal sw:              std_logic_vector(3 downto 0); -- Slide switches
     signal led:             std_logic_vector(3 downto 0); -- LEDs
     signal jtag_state_led:  std_logic_vector(3 downto 0);
     signal r:               std_ulogic_vector(31 downto 0);
@@ -94,7 +99,6 @@ architecture beh of inception_tb is
     ----------------------
     -- jtag ctrl master --
     ----------------------
-    signal period           :   natural range 1 to 31;
     signal TDO		    :   STD_LOGIC;
     signal TCK		    :   STD_LOGIC;
     signal TMS		    :   STD_LOGIC;
@@ -123,15 +127,15 @@ architecture beh of inception_tb is
     signal snd_din,snd_dout,rcv_din,rcv_dout  : std_logic_vector(31 downto 0);
  begin
   
- period <= 3; -- small value for simulation, for real code chose 15 so that jtag freq ~3MHz
+-- period <= 3; -- small value for simulation, for real code chose 15 so that jtag freq ~3MHz
  dut: inception 
   port map(
     aclk => aclk,
     aresetn => aresetn,
     
-    btn1_re => btn1_re,
-    btn2_re => btn2_re,
-    sw => sw,
+    --btn1_re => btn1_re,
+    --btn2_re => btn2_re,
+    --sw => sw,
     led => led,
     jtag_state_led => jtag_state_led,
     r => r,
@@ -142,7 +146,7 @@ architecture beh of inception_tb is
     ----------------------
     -- jtag ctrl master --
     ----------------------
-    period        => period,
+   -- period        => period,
     TDO		  => TDO,
     TCK		  => TCK, 
     TMS		  => TMS,
@@ -187,7 +191,7 @@ architecture beh of inception_tb is
 
  o_proc: process(TCK)
 
-    file output_fp: text open write_mode is "../../io/output.txt";
+    file output_fp: text open write_mode is "./io/output.txt";
     variable output_line: line;
     variable output_data: std_logic_vector(1 downto 0);
   begin
@@ -340,25 +344,25 @@ architecture beh of inception_tb is
   -- simulate host by taking commands from a file --
   --------------------------------------------------
   stub_input_proc: process
-      file input_fp: text open read_mode is "../../io/input.txt";
+      file input_fp: text open read_mode is "./io/input.txt";
       variable input_line : line;
       variable input_data : std_logic_vector(31 downto 0);
     begin
         snd_gen_loop: while(endfile(input_fp) = false) loop
-        snd_put <= '0';
-        wait for 15 ns;
-        if(snd_full='1')then
-          wait until snd_full='0';
-	  wait for 5 ns;
-        end if;
-        readline(input_fp,input_line);
-        hread(input_line,input_data);
-        snd_put <= '1';
-        snd_din <= input_data;
-        wait for 10 ns;
-      end loop snd_gen_loop;
-      snd_put <='0';
-      wait;
+          snd_put <= '0';
+          wait for 15 ns;
+          if(snd_full='1')then
+            wait until snd_full='0';
+	          wait for 5 ns;
+          end if;
+          readline(input_fp,input_line);
+          hread(input_line,input_data);
+          snd_put <= '1';
+          snd_din <= input_data;
+          wait for 10 ns;
+        end loop snd_gen_loop;
+        snd_put <='0';
+        wait;
     end process;
 
 end architecture beh;

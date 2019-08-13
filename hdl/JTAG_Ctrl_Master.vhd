@@ -48,31 +48,32 @@ use work.inception_pkg.all;
 
 entity JTAG_Ctrl_Master is
     Generic (
-           Addrbreite  : natural := 10;  -- Speicherlänge = 2^Addrbreite
-           Wortbreite  : natural := 8
+           PERIOD_RANGE    : natural := 31;
+           BIT_COUNT_SIZE  : natural := 6;
+           MAX_IO_REG_SIZE : natural := 43       
            );
     Port (
-	   CLK					: in  STD_LOGIC;
-           aresetn                              : in std_logic;
+       	   CLK					: in  STD_LOGIC;
+           aresetn      : in std_logic;
 
 				-- JTAG Part
-           daisy_normal_n            : in  std_logic;
-           period          : in  natural range 1 to 31;
-           BitCount			: in  STD_LOGIC_VECTOR (15 downto 0);
-           Shift_Strobe		: in  STD_LOGIC;								-- eins aktiv...
-           TDO				: in  STD_LOGIC;
-           TCK				: out  STD_LOGIC;
-           TMS				: out  STD_LOGIC;
-           TDI				: out  STD_LOGIC;
+           --daisy_normal_n            : in  std_logic;
+           period       : in  natural range 0 to PERIOD_RANGE;
+           BitCount		  : in  STD_LOGIC_VECTOR (BIT_COUNT_SIZE-1 downto 0);
+           Shift_Strobe	: in  STD_LOGIC;								-- eins aktiv...
+           TDO				  : in  STD_LOGIC;
+           TCK				  : out  STD_LOGIC;
+           TMS				  : out  STD_LOGIC;
+           TDI				  : out  STD_LOGIC;
            TRst					: out  STD_LOGIC;
            Busy					: out  STD_LOGIC;
 				   StateStart		: in	 std_logic_vector(3 downto 0);
            StateEnd			: in	 std_logic_vector(3 downto 0);
-				   StateCurrent		: out	 std_logic_vector(3 downto 0);
+				   StateCurrent	: out	 std_logic_vector(3 downto 0);
 
 				-- Ram Part
-           Din					: in  STD_LOGIC_VECTOR (35 downto 0);
-           Dout					: out STD_LOGIC_VECTOR (35 downto 0)
+           Din					: in  STD_LOGIC_VECTOR (MAX_IO_REG_SIZE-1 downto 0);
+           Dout					: out STD_LOGIC_VECTOR (MAX_IO_REG_SIZE-1 downto 0)
 				);
 end JTAG_Ctrl_Master;
 
@@ -93,14 +94,14 @@ architecture Behavioral of JTAG_Ctrl_Master is
 
 --Signal fuer TDI/TDO
 	type TypeShiftStates is (idle, prepare_for_working, shifting1, shifting2, shifting3, shifting4 );
-	signal ShiftState : TypeShiftStates;
-	signal int_BitCount				:	std_logic_vector( 15 downto 0 );
+  signal ShiftState : TypeShiftStates;
+	signal int_BitCount				:	std_logic_vector(BIT_COUNT_SIZE-1 downto 0 );
 
         signal slow_down: std_logic;
 
         signal down_cnt: natural range 0 to 31;
 
-        signal dout_shift_reg: std_logic_vector(35 downto 0);
+        signal dout_shift_reg: std_logic_vector(MAX_IO_REG_SIZE-1 downto 0);
         signal dout_en : std_logic;
 begin
   --TRst <= '1';
@@ -115,10 +116,10 @@ begin
         begin
           if(clk'event and clk='1')then
             if(aresetn='0')then
-              down_cnt <= period;
+              down_cnt <= period + 1;
             else
-              if(StateJTAGMaster = State_IDLE or down_cnt =0)then
-                down_cnt <= period;
+              if(StateJTAGMaster = State_IDLE or down_cnt = 0)then
+                down_cnt <= period + 1;
               else
                 down_cnt <= down_cnt - 1;
               end if;
@@ -137,11 +138,11 @@ begin
             else
               if(((down_cnt = 0 and slow_down = '1') or slow_down = '0') and dout_en='1')then
                 dout_shift_reg(35) <= TDO;
-		if(daisy_normal_n = '1') then
-		  dout_shift_reg(34) <= dout_shift_reg(35);
-		else
-		  dout_shift_reg(34) <= TDO;
-		end if;
+--		if(daisy_normal_n = '1') then
+--		  dout_shift_reg(34) <= dout_shift_reg(35);
+--		else
+--		  dout_shift_reg(34) <= TDO;
+--		end
                 shift_reg_loop: for i in 1 to 34 loop
                   dout_shift_reg(i-1) <= dout_shift_reg(i);
                 end loop shift_reg_loop;
@@ -193,7 +194,7 @@ begin
 					if ShiftState = idle then
 						int_TMS_StateIn <= StateEnd;
 						TMSState <= prepare_for_working;
-						StateJTAGMaster <= State_TapToEnd;
+            						StateJTAGMaster <= State_TapToEnd;
 					end if;
 
 				when State_TapToEnd =>
