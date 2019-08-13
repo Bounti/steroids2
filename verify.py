@@ -2,7 +2,7 @@
 ################################################################################
 #    @Author: Corteggiani Nassim <Corteggiani>                                 #
 #    @Email:  nassim.corteggiani@maximintegrated.com                           #
-#    @Filename: verify.py                                                #
+#    @Filename: verify.py                                                      #
 #    @Last modified by:   Corteggiani                                          #
 #    @Last modified time: 21-Mar-2017                                          #
 #    @License: GPLv3                                                           #
@@ -35,9 +35,10 @@ import binascii
 import sys
 import argparse
 
+# from hl_inputs import *
+
 #TODO : the path should be passed as command-line argument !
-# PATH = "/home/enoname/Tools/altera/13.1/modelsim_ase/linux"
-PATH = ""
+PATH=""
 VERBOSE = 0
 
 def LOG(lvl, category ,message):
@@ -49,18 +50,18 @@ def LOG(lvl, category ,message):
 
 def set_inputs(input):
 
-	f  = open(PATH+"/../bin/jtag_open_cores_test/input.txt", "w")
+	f  = open("./io/input.txt", "w")
 
-	input = format(intput, 'x')
-
-	f.write(input+'\n')
-
+	if isinstance(input, list):
+		for line in input:
+			f.write(str(line)+'\n')
+	else:
+		f.write(input+'\n')
 	f.close()
 
 def read_outputs():
 
-	# f  = open(PATH+"/../bin/jtag_open_cores_test/output.txt", "r")
-	f  = open(PATH+"io/output.txt", "r")
+	f  = open("./io/output.txt", "r")
 
 	lines = f.readlines()
 
@@ -76,27 +77,9 @@ def verify(State_start, outputs):
 	i = 0;
 
 	for line in outputs:
-		for c in line:
-
-			if c == '0':
-				if i==0 or i%3==0 :
-					tms = 0
-				else:
-					tdi = 0
-			if c == '1':
-				if i==0 or i%3==0 :
-					tms = 1
-				else:
-					tdi = 1
-			if c == 'U':
-				if i==0 or i%3==0 :
-					tms = -1
-				else:
-					tdi = -1
-			i = i + 1
-
+		tms = int(line[0])
+		tdi = int(line[1])
 		LOG(1,"JTAG_FSM", "TMS :"+str(tms)+" TDI :"+str(tdi))
-
 		fsm.run(tms, tdi)
 
 	LOG(0, "JTAG_FSM", "SHIFT DATA REGISTER          : "+"{0:b}".format(fsm.shift_ir))
@@ -106,6 +89,8 @@ def verify(State_start, outputs):
 
 def start_simu():
 
+	global PATH
+
 	err = None
 	out = None
 	pid = -1
@@ -113,8 +98,12 @@ def start_simu():
 	LOG(0, "", "[Simulator]")
 	LOG(0, "", "	starting...")
 
+	if PATH[len(PATH)-1] != "/":
+		PATH = PATH+"/"
+
 	with open(os.devnull, "w") as fnull:
-		pipe = subprocess.Popen([PATH+"/vsim", "-c", "-do", "cd "+PATH+"/../bin/jtag_open_cores_test ; do sim.do; quit"], stdout=out, stderr=err)
+		print(PATH+"vsim")
+		pipe = subprocess.check_call([PATH+"vsim", "-c", "-do", "./scripts/sim.do"], stdout=out, stderr=err)
 	LOG(0, "", "	simulation in progress...")
 	time.sleep(1)
 
@@ -282,100 +271,102 @@ if __name__ == "__main__":
 	LOG(0, "", "*  Internal Jtag Command Generator  *")
 	LOG(0, "", "\************************************/")
 
-	start_states_dict = {
-		'SHIFT_DR': 4,
-		'SHIFT_IR': 0xB,
-	}
-
-	end_states_dict = {
-		'TEST_LOGIC_RESET': 0,
-		'RUN_TEST_IDLE': 1,
-		'SELECT_DR': 2,
-		'CAPTURE_DR': 3,
-		# 'SHIFT_DR': 4,
-		'EXIT1_DR': 5,
-		'PAUSE_DR': 6,
-		'EXIT2_DR': 7,
-		'UPDATE_DR': 8,
-		'SELECT_IR': 9,
-		'CAPTURE_IR': 0xA,
-		# 'SHIFT_IR': 0xB,
-		'EXIT1_IR': 0xC,
-		'PAUSE_IR': 0xD,
-		'EXIT2_IR': 0xE,
-		'UPDATE_IR': 0xF,
-	}
-
-	line = -1
-
-	# combi=[]
-	# for x in combinations(items,2):
-	# 	dic={z:items[z] for z in x}
-	# 	combi.append(dic)
-	# LOG(combi)
-
+	# start_states_dict = {
+	# 	'SHIFT_DR': 4,
+	# 	'SHIFT_IR': 0xB,
+	# }
+	#
+	# end_states_dict = {
+	# 	'TEST_LOGIC_RESET': 0,
+	# 	'RUN_TEST_IDLE': 1,
+	# 	'SELECT_DR': 2,
+	# 	'CAPTURE_DR': 3,
+	# 	# 'SHIFT_DR': 4,
+	# 	'EXIT1_DR': 5,
+	# 	'PAUSE_DR': 6,
+	# 	'EXIT2_DR': 7,
+	# 	'UPDATE_DR': 8,
+	# 	'SELECT_IR': 9,
+	# 	'CAPTURE_IR': 0xA,
+	# 	# 'SHIFT_IR': 0xB,
+	# 	'EXIT1_IR': 0xC,
+	# 	'PAUSE_IR': 0xD,
+	# 	'EXIT2_IR': 0xE,
+	# 	'UPDATE_IR': 0xF,
+	# }
+	#
+	# line = -1
+	#
+	# # combi=[]
+	# # for x in combinations(items,2):
+	# # 	dic={z:items[z] for z in x}
+	# # 	combi.append(dic)
+	# # LOG(combi)
+	#
+	# # for item in combi:
+	# combi = itertools.product(start_states_dict, end_states_dict)
+	#
 	# for item in combi:
-	combi = itertools.product(start_states_dict, end_states_dict)
+	#
+	# 	State_start_name = item[0]
+	# 	State_start = start_states_dict[State_start_name]
+	#
+	# 	State_end_name = item[1]
+	# 	State_end = end_states_dict[State_end_name]
+	# 	Shift_register = 0
+	#
+	# 	if(State_end==4 or State_end == 0xB):
+	# 		Shift_count = random.randint(1, 35)
+	# 	else:
+	# 		Shift_count = 0
+	#
+	# 	line = line + 1
+	#
+	# 	intput = 0
+	# 	intput = ((State_start & 0xF) << 44)
+	# 	intput = intput | ((State_end & 0xF) << 40)
+	# 	intput = intput | ((Shift_count & 0xFF) << 32)
+	#
+	# 	if(State_end==4 or State_end == 0xB):
+	# 		intput = intput | (0xABABABAB >> (32-Shift_count) )
+	# 		Shift_register = (0xABABABAB >> (32-Shift_count) )
+	#
+	#
+	# 	LOG(0, "", "-------------------")
+	# 	LOG(0, "", "Start State    : "+State_start_name)
+	# 	LOG(0, "", "End State      : "+State_end_name)
+	# 	LOG(0, "", "Shift Count    : "+str(Shift_count))
+	# 	LOG(0, "", "Line           : "+str(line))
+	# 	LOG(0, "", "Output         : "+hex(intput))
+	# 	LOG(0, "", "-------------------")
+	#
+	# 	inputs = generate_intputs()
+	#
+	# 	set_inputs(intput)
+	start_simu()
 
-	for item in combi:
+	outputs = read_outputs()
 
-		State_start_name = item[0]
-		State_start = start_states_dict[State_start_name]
+	fsm = verify('RUN_TEST_IDLE', outputs)
+	error = False
 
-		State_end_name = item[1]
-		State_end = end_states_dict[State_end_name]
-		Shift_register = 0
+	# if fsm.current_state != State_end:
+	# 		LOG("[ERROR]\n\tFinal state differs from Oracle")
+	# 		LOG("\n\tExpected : "+str(State_end_name))
+	# 		key, value = fsm.fsm[fsm.current_state].popitem()
+	# 		LOG("\n\tResult   : "+key)
+	# 		error = True
 
-		if(State_end==4 or State_end == 0xB):
-			Shift_count = random.randint(1, 35)
-		else:
-			Shift_count = 0
+	# if Shift_count > 0 :
+	# 	if fsm.shift_ir != Shift_register:
+	# 		if fsm.shift_dr != Shift_register:
+	# 			LOG("[ERROR]\n\tShift register value differs from Oracle")
+	# 			error = True
+	#
+	# if error == True:
+	# 	exit(0)
 
-		line = line + 1
+	key, value = fsm.fsm[fsm.current_state].popitem()
+	LOG(0, "Test Done", "Final state "+key)
+	exit(0)
 
-		intput = 0
-		intput = ((State_start & 0xF) << 44)
-		intput = intput | ((State_end & 0xF) << 40)
-		intput = intput | ((Shift_count & 0xFF) << 32)
-
-		if(State_end==4 or State_end == 0xB):
-			intput = intput | (0xABABABAB >> (32-Shift_count) )
-			Shift_register = (0xABABABAB >> (32-Shift_count) )
-
-
-		LOG(0, "", "-------------------")
-		LOG(0, "", "Start State    : "+State_start_name)
-		LOG(0, "", "End State      : "+State_end_name)
-		LOG(0, "", "Shift Count    : "+str(Shift_count))
-		LOG(0, "", "Line           : "+str(line))
-		LOG(0, "", "Output         : "+hex(intput))
-		LOG(0, "", "-------------------")
-
-		# set_inputs(intput)
-
-		# start_simu()
-
-		outputs = read_outputs()
-
-		fsm = verify(State_start, outputs)
-		error = False
-
-		# if fsm.current_state != State_end:
-		# 		LOG("[ERROR]\n\tFinal state differs from Oracle")
-		# 		LOG("\n\tExpected : "+str(State_end_name))
-		# 		key, value = fsm.fsm[fsm.current_state].popitem()
-		# 		LOG("\n\tResult   : "+key)
-		# 		error = True
-		#
-		# if Shift_count > 0 :
-		# 	if fsm.shift_ir != Shift_register:
-		# 		if fsm.shift_dr != Shift_register:
-		# 			LOG("[ERROR]\n\tShift register value differs from Oracle")
-		# 			error = True
-		#
-		# if error == True:
-		# 	exit(0)
-
-		key, value = fsm.fsm[fsm.current_state].popitem()
-		LOG(0, "Test Done", "Expected "+key+" got "+State_end_name)
-		exit(0)
