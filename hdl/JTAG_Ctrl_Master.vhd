@@ -48,9 +48,10 @@ use work.inception_pkg.all;
 
 entity JTAG_Ctrl_Master is
     Generic (
-           PERIOD_RANGE    : natural := 31;
+           PERIOD_RANGE    : natural := 63;
            BIT_COUNT_SIZE  : natural := 6;
-           MAX_IO_REG_SIZE : natural := 43       
+           BIT_COUNT_MASK  : std_logic_vector := "101010";
+           MAX_IO_REG_SIZE : natural := 43 
            );
     Port (
        	   CLK					: in  STD_LOGIC;
@@ -99,7 +100,7 @@ architecture Behavioral of JTAG_Ctrl_Master is
 
         signal slow_down: std_logic;
 
-        signal down_cnt: natural range 0 to 31;
+        signal down_cnt: natural range 0 to PERIOD_RANGE+1;
 
         signal dout_shift_reg: std_logic_vector(MAX_IO_REG_SIZE-1 downto 0);
         signal dout_en : std_logic;
@@ -243,7 +244,7 @@ begin
 						end if;
 					end if;
 					-- TDI schieben
-					TDI <= Din(CONV_INTEGER(int_BitCount));
+					TDI <= Din(CONV_INTEGER(int_BitCount and BIT_COUNT_MASK));
 
 					ShiftState <= shifting2;
 
