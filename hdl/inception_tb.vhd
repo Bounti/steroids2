@@ -26,7 +26,7 @@ architecture beh of inception_tb is
   
   component inception is
   Generic (
-    PERIOD_RANGE    : natural := 31;
+    PERIOD_RANGE    : natural := 63;
     BIT_COUNT_SIZE  : natural := 6;
     MAX_IO_REG_SIZE : natural := 43       
   );
@@ -176,6 +176,24 @@ architecture beh of inception_tb is
 --   end loop irq_loop;
 --   wait;
 -- end process;
+
+ o_csv_proc: process(TCK)
+   file output_file: text open write_mode is "./io/data.csv";
+   variable row: line;
+   begin
+     if(TCK'event and TCK='1') then
+       write(row, time'image(now));
+       write(row, string'(","));
+       write(row, TDI, right, 1);
+       write(row, string'(","));
+       write(row, TMS, right, 1);
+       write(row, string'(","));
+       write(row, TCK, right, 1);
+       write(row, string'(","));
+       write(row, TDO, right, 1);
+       writeline(output_file, row);
+     end if;
+   end process;
 
  o_proc: process(TCK)
 
