@@ -1,14 +1,3 @@
--- Copyright (C) Telecom ParisTech
---
--- This file must be used under the terms of the CeCILL. This source
--- file is licensed as described in the file COPYING, which you should
--- have received as part of this distribution. The terms are also
--- available at:
--- http://www.cecill.info/licences/Licence_CeCILL_V1.1-US.txt
---
-
--- See the README.md file for a detailed description of SAB4Z
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -20,7 +9,7 @@ use ieee.std_logic_textio.all;
 
 entity inception is
   Generic (
-    PERIOD_RANGE    : natural := 31;
+    PERIOD_RANGE    : natural := 63;
     BIT_COUNT_SIZE  : natural := 6;
     MAX_IO_REG_SIZE : natural := 43 
   );
@@ -635,12 +624,18 @@ architecture beh of inception is
         jtag_state_led        <= "0100";
         jtag_cmd_dec          <= '1';
         -- exec jtag command
-        jtag_state_start      <= jtag_cmd_dout( STATE_START_END_OFFSET downto STATE_START_BEGIN_OFFSET );
-        jtag_state_end        <= jtag_cmd_dout( STATE_END_END_OFFSET downto STATE_END_BEGIN_OFFSET );
-        jtag_bit_count        <= jtag_cmd_dout( BITCOUNT_END_OFFSET downto BITCOUNT_BEGIN_OFFSET );
-        period                <= to_integer(unsigned(jtag_cmd_dout( PERIOD_END_OFFSET downto PERIOD_BEGIN_OFFSET)));
-        jtag_di               <= jtag_cmd_dout( PAYLOAD_END_OFFSET downto PAYLOAD_BEGIN_OFFSET);
-        jtag_write_back       <= jtag_cmd_dout( PAYLOAD_END_OFFSET+1 );
+        jtag_state_start      <= jtag_cmd_dout( 3 downto 0 );
+        jtag_state_end        <= jtag_cmd_dout( 7 downto 4 );
+        jtag_bit_count        <= jtag_cmd_dout( 13 downto 8 );
+        period                <= to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
+        jtag_di               <= jtag_cmd_dout( 62 downto 20);
+        jtag_write_back       <= jtag_cmd_dout( 63 );
+        --jtag_state_start      <= jtag_cmd_dout( STATE_START_END_OFFSET downto STATE_START_BEGIN_OFFSET );
+        --jtag_state_end        <= jtag_cmd_dout( STATE_END_END_OFFSET downto STATE_END_BEGIN_OFFSET );
+        --jtag_bit_count        <= jtag_cmd_dout( BITCOUNT_END_OFFSET downto BITCOUNT_BEGIN_OFFSET );
+        --period                <= to_integer(unsigned(jtag_cmd_dout( PERIOD_END_OFFSET downto PERIOD_BEGIN_OFFSET)));
+        --jtag_di               <= jtag_cmd_dout( PAYLOAD_END_OFFSET downto PAYLOAD_BEGIN_OFFSET);
+        --jtag_write_back       <= jtag_cmd_dout( PAYLOAD_END_OFFSET+1 );
         jtag_shift_strobe     <= '1';
       when others =>
     end case;
