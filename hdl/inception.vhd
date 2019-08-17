@@ -482,6 +482,7 @@ architecture beh of inception is
               write_back_logic_state <= WAIT_SEQ_COMPLETION;
               write_back_ready <= '0';
             end if;
+            data_put <= '0';
           WHEN WAIT_SEQ_COMPLETION =>
             if( jtag_busy = '0' and jtag_write_back = '1' ) then
               -- Start first write back of tdo
