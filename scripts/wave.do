@@ -6,8 +6,6 @@ add wave -noupdate /inception_tb/aresetn
 add wave -noupdate -divider {fpga debug io}
 add wave -noupdate /inception_tb/led
 add wave -noupdate /inception_tb/jtag_state_led
-add wave -noupdate /inception_tb/r
-add wave -noupdate /inception_tb/status
 add wave -noupdate -divider {jtag interface}
 add wave -noupdate /inception_tb/TDO
 add wave -noupdate /inception_tb/TCK
@@ -50,12 +48,13 @@ add wave -noupdate /inception_tb/dut/irq_fifo_inst/din
 add wave -noupdate /inception_tb/dut/irq_fifo_inst/dout
 add wave -noupdate /inception_tb/dut/irq_fifo_inst/state
 add wave -noupdate -divider {jtag converter}
-add wave -noupdate /inception_tb/dut/jtag_bit_count
-add wave -noupdate /inception_tb/dut/jtag_shift_strobe
-add wave -noupdate /inception_tb/dut/jtag_busy
 add wave -noupdate /inception_tb/dut/jtag_state_start
 add wave -noupdate /inception_tb/dut/jtag_state_end
 add wave -noupdate /inception_tb/dut/jtag_state_current
+add wave -noupdate /inception_tb/dut/jtag_bit_count
+add wave -noupdate /inception_tb/dut/period
+add wave -noupdate /inception_tb/dut/jtag_shift_strobe
+add wave -noupdate /inception_tb/dut/jtag_busy
 add wave -noupdate /inception_tb/dut/jtag_di
 add wave -noupdate /inception_tb/dut/jtag_do
 add wave -noupdate /inception_tb/dut/usb_to_jtag_state
