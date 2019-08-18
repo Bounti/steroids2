@@ -30,3 +30,13 @@ JMP10 ON
 JMP9  On
 JMP8  OFF
 ```
+
+# Simulation
+
+Simulation files are set for Modelsim only.
+
+```
+vlib work
+
+vsim -do scripts/sim.do
+```
