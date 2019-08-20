@@ -28,7 +28,7 @@ architecture beh of inception_tb is
   Generic (
     PERIOD_RANGE    : natural := 63;
     BIT_COUNT_SIZE  : natural := 6;
-    MAX_IO_REG_SIZE : natural := 43       
+    MAX_IO_REG_SIZE : natural := 64       
   );
   Port (
     aclk:       in std_logic;  -- Clock

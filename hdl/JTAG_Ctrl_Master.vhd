@@ -50,8 +50,7 @@ entity JTAG_Ctrl_Master is
     Generic (
            PERIOD_RANGE    : natural := 63;
            BIT_COUNT_SIZE  : natural := 6;
-           BIT_COUNT_MASK  : std_logic_vector := "101010";
-           MAX_IO_REG_SIZE : natural := 43 
+           MAX_IO_REG_SIZE : natural := 64 
            );
     Port (
        	   CLK					: in  STD_LOGIC;
@@ -164,6 +163,7 @@ begin
                   ShiftState <= idle;
                   int_TMS_SoftResetCnt <= "0000";
                   int_TMS_CurrState <= TEST_LOGIC_RESET;
+                  StateJTAGMaster   <= State_IDLE;
                 else
                 if((down_cnt = 0 and slow_down = '1') or slow_down = '0')then
 		TRST <= '1';
@@ -244,7 +244,7 @@ begin
 						end if;
 					end if;
 					-- TDI schieben
-					TDI <= Din(CONV_INTEGER(int_BitCount and BIT_COUNT_MASK));
+					TDI <= Din(CONV_INTEGER(int_BitCount));
 
 					ShiftState <= shifting2;
 

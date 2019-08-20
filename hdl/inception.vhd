@@ -11,7 +11,7 @@ entity inception is
   Generic (
     PERIOD_RANGE    : natural := 63;
     BIT_COUNT_SIZE  : natural := 6;
-    MAX_IO_REG_SIZE : natural := 43 
+    MAX_IO_REG_SIZE : natural := 64 
   );
   Port (
     aclk:       in std_logic;  -- Clock
@@ -499,7 +499,7 @@ architecture beh of inception is
             data_put <= '0';
             write_back_logic_state <= WRITE_BACK_PART2;
           WHEN WRITE_BACK_PART2 =>
-            data_din <= "000000000000000000000"&jtag_do_buffer(MAX_IO_REG_SIZE-1 downto 32);
+            data_din <= jtag_do_buffer(MAX_IO_REG_SIZE-1 downto 32);
             data_put <= '1';
             write_back_logic_state <= IDLE;
             write_back_ready <= '1';
@@ -580,7 +580,7 @@ architecture beh of inception is
   begin
     if( aclk'event and aclk = '1' ) then
       if( aresetn = '0' ) then
-        usb_to_jtag_state    <= idle;
+        usb_to_jtag_state    <= RESET;
       else 
         case usb_to_jtag_state is
           when RESET        =>
@@ -611,7 +611,7 @@ architecture beh of inception is
           jtag_state_end      <= TEST_LOGIC_RESET;
           jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
           jtag_write_back     <= '0'; 
-          period              <= 1;
+          period              <= 63;
           jtag_shift_strobe   <= '0';
           jtag_cmd_dec        <= '0';
       when IDLE      =>
@@ -628,8 +628,8 @@ architecture beh of inception is
         jtag_state_start      <= jtag_cmd_dout( 3 downto 0 );
         jtag_state_end        <= jtag_cmd_dout( 7 downto 4 );
         jtag_bit_count        <= jtag_cmd_dout( 13 downto 8 );
-        period                <= to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
-        jtag_di               <= jtag_cmd_dout( 62 downto 20);
+        --period                <= to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
+        jtag_di               <= "000000000000000000000"&jtag_cmd_dout( 62 downto 20);
         jtag_write_back       <= jtag_cmd_dout( 63 );
         --jtag_state_start      <= jtag_cmd_dout( STATE_START_END_OFFSET downto STATE_START_BEGIN_OFFSET );
         --jtag_state_end        <= jtag_cmd_dout( STATE_END_END_OFFSET downto STATE_END_BEGIN_OFFSET );
