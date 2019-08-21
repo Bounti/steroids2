@@ -11,7 +11,8 @@ use UNISIM.vcomponents.all;
 entity P_ODDR2 is
 port (
     aclk       : in std_logic;
-    clk_out    : out std_logic
+    clk_out    : out std_logic;
+    aresetn    : in std_logic
 );
 end P_ODDR2;
 
@@ -43,7 +44,7 @@ begin
        C0     => aclk,
        C1     => aclkn,
        Q      => clk_out,
-       CE     => '1',
+       CE     => aresetn,
        S      => '0',
        R      => '0'
      );

@@ -8,8 +8,8 @@ use ieee.std_logic_textio.all;
 entity P_ODDR2 is
 port (
     aclk       : in std_logic;
-    aclkn      : out std_logic;
-    clk_out    : out std_logic
+    clk_out    : out std_logic;
+    aresetn    : in std_logic
 );
 end P_ODDR2;
 
