@@ -133,7 +133,8 @@ architecture beh of inception is
   component P_ODDR2 is
   port (
     aclk       : in std_logic;
-    clk_out    : out std_logic
+    clk_out    : out std_logic;
+    aresetn    : in std_logic
   );
   end component;
 
@@ -704,7 +705,8 @@ architecture beh of inception is
   ODDR2_inst: P_ODDR2
   port map(
     aclk      => aclk, 
-    clk_out   => clk_out
+    clk_out   => clk_out,
+    aresetn   => aresetn
   );
 
   -- LED outputs
