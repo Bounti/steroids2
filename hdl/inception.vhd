@@ -154,7 +154,7 @@ architecture beh of inception is
   );
   end component;
 
-  type cmd_read_state_t is (RESET,IDLE,READ_START,READ_END,SAVE);
+  type cmd_read_state_t is (RESET,IDLE,READ_START,READ_END,SAVE1,SAVE2);
   signal cmd_read_state : cmd_read_state_t;
   
   signal jtag_do_buffer: std_logic_vector(MAX_IO_REG_SIZE - 1 downto 0);  
@@ -535,8 +535,14 @@ architecture beh of inception is
             when READ_START =>
               cmd_read_state <= READ_END;
             when READ_END   =>
-              cmd_read_state <= SAVE;
-            when SAVE =>
+              if( cmd_cnt = '0' ) then
+                cmd_read_state <= SAVE1;
+              else 
+                cmd_read_state <= SAVE2;
+              end if;
+            when SAVE1 =>
+              cmd_read_state <= IDLE;
+            when SAVE2 =>
               cmd_read_state <= IDLE;
             when others =>
               cmd_read_state <= IDLE;
@@ -554,26 +560,35 @@ architecture beh of inception is
           jtag_cmd_put  <= '0';
           cmd_cnt       <= '0';
         when IDLE =>
-          jtag_cmd_put  <= '0';
           cmd_get       <= '0';
+          jtag_cmd_put  <= '0';
+          cmd_cnt       <= '0';
         when READ_START =>
-          cmd_get <= '1';
+          cmd_get       <= '1';
+          jtag_cmd_put  <= '0';
+          cmd_cnt       <= '0';
         when READ_END =>
-          cmd_get <= '0';
-        when SAVE =>
-          if( cmd_cnt = '0' ) then
-            cmd_read_buffer <= cmd_dout;
-            cmd_cnt         <= '1';
-          else
-            jtag_cmd_din <= cmd_dout&cmd_read_buffer;
-            jtag_cmd_put <= '1';
-            cmd_cnt      <= '0';
-          end if;
-          cmd_get                 <= '0';
+          cmd_get       <= '1';
+          jtag_cmd_put  <= '0';
+          cmd_cnt       <= '0';
+        when SAVE1 =>
+          cmd_get       <= '0';
+          jtag_cmd_put  <= '0';
+          cmd_cnt       <= '1';
+        when SAVE2 =>
+          cmd_get       <= '0';
+          jtag_cmd_put  <= '1';
+          cmd_cnt       <= '0';
         when others =>
-          cmd_get      <= '0';
+          cmd_get       <= '0';
+          jtag_cmd_put  <= '0';
+          cmd_cnt       <= '0';
       end case;
   end process cmd_read_out_logic; 
+
+  cmd_read_buffer <= cmd_dout when (cmd_read_state = SAVE2) else 0;
+
+  jtag_cmd_din <= cmd_dout&cmd_read_buffer;
 
   -- usb to jtag converter
   usb_to_jtag_state_logic: process(aclk)
@@ -615,30 +630,52 @@ architecture beh of inception is
           jtag_shift_strobe   <= '0';
           jtag_cmd_dec        <= '0';
       when IDLE      =>
-        jtag_state_led        <= "0001";
-        jtag_cmd_dec          <= '0';
-        jtag_shift_strobe     <= '0';
+          jtag_state_led      <= "0001";
+          jtag_state_start    <= TEST_LOGIC_RESET;
+          jtag_bit_count      <= std_logic_vector(to_unsigned(0,BIT_COUNT_SIZE));
+          jtag_state_end      <= TEST_LOGIC_RESET;
+          jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
+          jtag_write_back     <= '0'; 
+          period              <= 1;
+          jtag_shift_strobe   <= '0';
+          jtag_cmd_dec        <= '0';
       when DUTY_CYCLE=>
-        jtag_state_led        <= "0010";
-        jtag_cmd_dec          <= '0';
+          jtag_state_led      <= "0010";
+          jtag_state_start    <= TEST_LOGIC_RESET;
+          jtag_bit_count      <= std_logic_vector(to_unsigned(0,BIT_COUNT_SIZE));
+          jtag_state_end      <= TEST_LOGIC_RESET;
+          jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
+          jtag_write_back     <= '0'; 
+          period              <= 1;
+          jtag_shift_strobe   <= '0';
+          jtag_cmd_dec        <= '0';
       when EXEC      =>
-        jtag_state_led        <= "0100";
-        jtag_cmd_dec          <= '1';
-        -- exec jtag command
-        jtag_state_start      <= jtag_cmd_dout( 3 downto 0 );
-        jtag_state_end        <= jtag_cmd_dout( 7 downto 4 );
-        jtag_bit_count        <= jtag_cmd_dout( 13 downto 8 );
-        period                <= to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
-        jtag_di               <= jtag_cmd_dout( 62 downto 20);
-        jtag_write_back       <= jtag_cmd_dout( 63 );
-        --jtag_state_start      <= jtag_cmd_dout( STATE_START_END_OFFSET downto STATE_START_BEGIN_OFFSET );
-        --jtag_state_end        <= jtag_cmd_dout( STATE_END_END_OFFSET downto STATE_END_BEGIN_OFFSET );
-        --jtag_bit_count        <= jtag_cmd_dout( BITCOUNT_END_OFFSET downto BITCOUNT_BEGIN_OFFSET );
-        --period                <= to_integer(unsigned(jtag_cmd_dout( PERIOD_END_OFFSET downto PERIOD_BEGIN_OFFSET)));
-        --jtag_di               <= jtag_cmd_dout( PAYLOAD_END_OFFSET downto PAYLOAD_BEGIN_OFFSET);
-        --jtag_write_back       <= jtag_cmd_dout( PAYLOAD_END_OFFSET+1 );
-        jtag_shift_strobe     <= '1';
+          jtag_state_led        <= "0100";
+          jtag_cmd_dec          <= '1';
+          -- exec jtag command
+          jtag_state_start      <= jtag_cmd_dout( 3 downto 0 );
+          jtag_state_end        <= jtag_cmd_dout( 7 downto 4 );
+          jtag_bit_count        <= jtag_cmd_dout( 13 downto 8 );
+          period                <= 1;--to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
+          jtag_di               <= jtag_cmd_dout( 62 downto 20);
+          jtag_write_back       <= jtag_cmd_dout( 63 );
+          --jtag_state_start      <= jtag_cmd_dout( STATE_START_END_OFFSET downto STATE_START_BEGIN_OFFSET );
+          --jtag_state_end        <= jtag_cmd_dout( STATE_END_END_OFFSET downto STATE_END_BEGIN_OFFSET );
+          --jtag_bit_count        <= jtag_cmd_dout( BITCOUNT_END_OFFSET downto BITCOUNT_BEGIN_OFFSET );
+          --period                <= to_integer(unsigned(jtag_cmd_dout( PERIOD_END_OFFSET downto PERIOD_BEGIN_OFFSET)));
+          --jtag_di               <= jtag_cmd_dout( PAYLOAD_END_OFFSET downto PAYLOAD_BEGIN_OFFSET);
+          --jtag_write_back       <= jtag_cmd_dout( PAYLOAD_END_OFFSET+1 );
+          jtag_shift_strobe     <= '1';
       when others =>
+          jtag_state_led      <= "1111";
+          jtag_state_start    <= TEST_LOGIC_RESET;
+          jtag_bit_count      <= std_logic_vector(to_unsigned(0,BIT_COUNT_SIZE));
+          jtag_state_end      <= TEST_LOGIC_RESET;
+          jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
+          jtag_write_back     <= '0'; 
+          period              <= 1;
+          jtag_shift_strobe   <= '0';
+          jtag_cmd_dec        <= '0';
     end case;
   end process usb_to_jtag_out_logic;
 
