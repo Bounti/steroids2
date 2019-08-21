@@ -35,7 +35,7 @@ end ring_buffer;
 
 architecture beh of ring_buffer is
 
-  type ram_type is array (0 to RAM_DEPTH - 1) of
+  type ram_type is array (RAM_DEPTH - 1 downto 0) of
     std_logic_vector(wr_data'range);
   signal ram : ram_type;
 

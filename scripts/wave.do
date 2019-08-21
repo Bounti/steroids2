@@ -57,14 +57,17 @@ add wave -noupdate /inception_tb/dut/jtag_shift_strobe
 add wave -noupdate /inception_tb/dut/jtag_busy
 add wave -noupdate /inception_tb/dut/jtag_di
 add wave -noupdate /inception_tb/dut/jtag_do
-add wave -noupdate /inception_tb/dut/usb_to_jtag_state
-add wave -noupdate /inception_tb/dut/cmd_read_state
 add wave -noupdate /inception_tb/dut/jtag_cmd_dec
 add wave -noupdate /inception_tb/dut/jtag_cmd_put
 add wave -noupdate /inception_tb/dut/jtag_cmd_full
 add wave -noupdate /inception_tb/dut/jtag_cmd_empty
 add wave -noupdate /inception_tb/dut/jtag_cmd_din
 add wave -noupdate /inception_tb/dut/jtag_cmd_dout
+add wave -noupdate -divider {cmd fifo reader}
+add wave -noupdate /inception_tb/dut/usb_to_jtag_state
+add wave -noupdate /inception_tb/dut/cmd_cnt
+add wave -noupdate /inception_tb/dut/cmd_read_buffer
+add wave -noupdate /inception_tb/dut/cmd_read_state
 add wave -noupdate -divider {ring jtag cmd fifo}
 add wave -noupdate /inception_tb/dut/ring_buffer_inst/wr_en
 add wave -noupdate /inception_tb/dut/ring_buffer_inst/dec
