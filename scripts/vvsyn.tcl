@@ -29,7 +29,7 @@ cd $builddir
 # Create USB2JTAG IP #
 ###################
 create_project -part xc7z020clg484-1 -force usb2jtag usb2jtag_ip
-set sources { inception_pkg inception JTAG_Ctrl_Master ring_buffer fifo_ram tristate oddr2}
+set sources { inception_pkg inception JTAG_Ctrl_Master fifo_ram_32_to_64 fifo_ram tristate oddr2}
 foreach f $sources {
 	add_files $rootdir/hdl/$f.vhd
 }

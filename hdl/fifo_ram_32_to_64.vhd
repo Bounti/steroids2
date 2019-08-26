@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity fifo_ram is
+entity fifo_ram_32_to_64 is
   generic(
     width: natural := 32;
     addr_size: natural := 10
@@ -15,11 +15,11 @@ entity fifo_ram is
     put:   in  std_logic;
     get:   in  std_logic;
     din:   in  std_logic_vector(width-1 downto 0);
-    dout:  out std_logic_vector(width-1 downto 0)
+    dout:  out std_logic_vector((width*2)-1 downto 0)
   );
 end entity;
 
-architecture beh of fifo_ram is
+architecture beh of fifo_ram_32_to_64 is
 
   type ram_t is array(0 to (2**addr_size)-1) of std_logic_vector(width-1 downto 0);
 
@@ -55,19 +55,22 @@ begin
             end if;
           when 2**addr_size =>
             if(get='1')then
-              state.cnt <= state.cnt - 1;
-              if(state.rd_ptr = 2**addr_size-1)then
+              --state.cnt <= state.cnt - 1;
+              state.cnt <= state.cnt - 2;
+              --if(state.rd_ptr = 2**addr_size-1)then
+              if(state.rd_ptr = 2**addr_size-2)then
                 state.rd_ptr <= 0;
               else
-                state.rd_ptr <= state.rd_ptr + 1;
+                --state.rd_ptr <= state.rd_ptr + 1;
+                state.rd_ptr <= state.rd_ptr + 2;
               end if;
-              dout <= state.ram(state.rd_ptr);
+              dout <= state.ram(state.rd_ptr+1)&state.ram(state.rd_ptr);
             end if;
           when others =>
             if(put='1' and get='0')then
               state.cnt <= state.cnt + 1;
             elsif(put='0' and get='1')then
-              state.cnt <= state.cnt - 1;
+              state.cnt <= state.cnt - 2;
             end if;
         end case;
 
@@ -83,19 +86,22 @@ begin
         end if;
         if(state.cnt /= 0)then
           if(get='1')then
-            if(state.rd_ptr = 2**addr_size-1)then
+            --if(state.rd_ptr = 2**addr_size-1)then
+            if(state.rd_ptr = 2**addr_size-2)then
               state.rd_ptr <= 0;
             else
-              state.rd_ptr <= state.rd_ptr + 1;
+              --state.rd_ptr <= state.rd_ptr + 1;
+              state.rd_ptr <= state.rd_ptr + 2;
             end if;
-            dout <= state.ram(state.rd_ptr);
+            --dout <= state.ram(state.rd_ptr);
+            dout <= state.ram(state.rd_ptr+1)&state.ram(state.rd_ptr);
           end if;
         end if;
       end if;
     end if;
   end process state_proc;
 
-  empty <= '1' when state.cnt = 0 else '0';
+  empty <= '1' when (state.cnt = 0 or state.cnt = 1) else '0';
   full  <= '1' when state.cnt = 2**addr_size else '0';
 
 end architecture beh;

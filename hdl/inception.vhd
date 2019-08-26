@@ -121,6 +121,23 @@ architecture beh of inception is
   );
   end component;
 
+  component fifo_ram_32_to_64 is
+  generic(
+    width: natural := 32;
+    addr_size: natural := 10
+  );
+  port(
+    aclk:  in  std_logic;
+    aresetn: in std_logic;
+    empty: out std_logic;
+    full:  out std_logic;
+    put:   in  std_logic;
+    get:   in  std_logic;
+    din:   in  std_logic_vector(width-1 downto 0);
+    dout:  out std_logic_vector((width*2)-1 downto 0)
+  );
+  end component;
+
   component tristate is
   port (
     fdata_in : out std_logic_vector(31 downto 0);
@@ -138,62 +155,22 @@ architecture beh of inception is
   );
   end component;
 
-  component ring_buffer is
-  generic (
-    RAM_WIDTH : natural := 64;
-    RAM_DEPTH : natural := 2
-  );
-  port (
-      aclk    : in std_logic;
-      aresetn : in std_logic;
-      wr_en   : in std_logic;
-      wr_data : in std_logic_vector(RAM_WIDTH - 1 downto 0);
-      dec     : in std_logic;
-      rd_data : out std_logic_vector(RAM_WIDTH - 1 downto 0);
-      empty   : out std_logic;
-      full    : out std_logic
-  );
-  end component;
-
-  type cmd_read_state_t is (IDLE,READ,SAVE,DUTY_CYCLE);
+  type cmd_read_state_t is (IDLE,READ,START_JTAG,DUTY_CYCLE);
   signal cmd_read_state : cmd_read_state_t;
   
   signal jtag_do_buffer: std_logic_vector(MAX_IO_REG_SIZE - 1 downto 0);  
   type write_back_logic_state_t is (IDLE,WAIT_SEQ_COMPLETION,WRITE_BACK_PART1,WRITE_BACK_PART1_WAIT,WRITE_BACK_PART2);
   signal write_back_logic_state: write_back_logic_state_t;
   signal write_back_ready: std_logic;
-
-  type jtag_st_t is (idle,idle2,read_cmd,read_addr,run_cmd,wait_cmd,write_back_h,write_back_l,done_cmd,done);
-  type jtag_op_t is (read,read_irq,write,reset);
-  type jtag_state_t is record
-    st: jtag_st_t;
-    op: jtag_op_t;
-    step:   natural range 0 to NSTEPS_RST-1;
-    size:   natural range 0 to 4;
-    number: natural range 0 to 2**24-1;
-    addr:   std_logic_vector(31 downto 0);
-  end record;
-
-  signal jtag_state : jtag_state_t;
-
-  type usb_to_jtag_state_t is (RESET,IDLE,WAIT_JTAG,EXEC,DUTY_CYCLE);
   signal jtag_write_back   : std_logic;
-  signal usb_to_jtag_state : usb_to_jtag_state_t;
-  signal cmd_read_buffer : std_logic_vector(31 downto 0);
-  signal cmd_cnt         : std_logic;
 
   signal cmd_empty,data_empty,irq_empty: std_logic;
   signal cmd_full,data_full,irq_full:   std_logic;
   signal cmd_put,data_put,irq_put:     std_logic;
   signal cmd_get,data_get,irq_get:     std_logic;
   signal cmd_din,data_din,irq_din:     std_logic_vector(31 downto 0);
-  signal cmd_dout,data_dout,irq_dout:   std_logic_vector(31 downto 0);
-
-
-  signal jtag_cmd_full, jtag_cmd_empty, jtag_cmd_dec, jtag_cmd_put: std_logic;
-  signal jtag_cmd_din, jtag_cmd_dout: std_logic_vector(63 downto 0);
-
-  signal cmd_done: std_logic;
+  signal cmd_dout:                     std_logic_vector(63 downto 0);
+  signal data_dout,irq_dout:           std_logic_vector(31 downto 0);
 
   -- fx3 interface
   signal tristate_en_n:                   std_logic;
@@ -265,9 +242,7 @@ architecture beh of inception is
 	      irq_state <= forward_event;
 	    end if;
 	  when forward_event =>
-	    if(cmd_done='1')then
 	      irq_state <= done;
-	    end if;
 	  when done =>
 	    if(irq_sync='0')then
 	      irq_state <= idle;
@@ -283,7 +258,7 @@ architecture beh of inception is
   --------------------------------------------------------
   -- local fifo to store commands reveived from the fx3 --
   --------------------------------------------------------
-  cmd_fifo_inst : fifo_ram
+  cmd_fifo_inst : fifo_ram_32_to_64
     generic map(
       width => 32,
       addr_size => 4
@@ -448,19 +423,6 @@ architecture beh of inception is
       end if;
     end if;
   end process fx3_sl_master_fsm_proc;
-
-
-  ring_buffer_inst: ring_buffer
-    port map(
-      aclk         => aclk,
-      aresetn      => aresetn,
-      wr_en        => jtag_cmd_put,
-      wr_data      => jtag_cmd_din,
-      dec          => jtag_cmd_dec,
-      rd_data      => jtag_cmd_dout,  
-      empty        => jtag_cmd_empty, 
-      full         => jtag_cmd_full
-    );
  
   -- This state machine read back TDO bits that are sent to 
   -- the data fifo and then forwarded to the FX3.
@@ -525,27 +487,34 @@ architecture beh of inception is
     if( aclk'event and aclk = '1' ) then
       if( aresetn = '0' ) then
         cmd_read_state <= IDLE;
-        cmd_cnt        <= '0';
-        cmd_read_buffer<= std_logic_vector(to_unsigned(0, 32));
+        jtag_state_start    <= TEST_LOGIC_RESET;
+        jtag_bit_count      <= std_logic_vector(to_unsigned(0,BIT_COUNT_SIZE));
+        jtag_state_end      <= TEST_LOGIC_RESET;
+        jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
+        jtag_write_back     <= '0'; 
+        period              <= 63;
+        jtag_shift_strobe   <= '0';
       else 
           case cmd_read_state is
             when IDLE =>
-              if( cmd_empty = '0' and jtag_cmd_full = '0' ) then
+              jtag_shift_strobe   <= '0';
+              if( cmd_empty = '0' and jtag_busy  = '0' ) then
                 cmd_read_state <= READ;
               end if;
             when READ =>
-              if( cmd_cnt = '0' ) then
-                cmd_read_state <= DUTY_CYCLE;
-                cmd_cnt        <= '1'; 
-              else 
-                cmd_read_state <= SAVE;
-                cmd_cnt        <= '0'; 
-              end if;
-            when SAVE       =>
-              cmd_read_state <= IDLE;       
+                jtag_shift_strobe   <= '0';
+                cmd_read_state <= START_JTAG;
+            when START_JTAG =>
+              jtag_shift_strobe     <= '1';
+              jtag_state_start      <= cmd_dout( 3 downto 0 );
+              jtag_state_end        <= cmd_dout( 7 downto 4 );
+              jtag_bit_count        <= cmd_dout( 13 downto 8 );
+              period                <= to_integer(unsigned(cmd_dout( 19 downto 14)));
+              jtag_di               <= "000000000000000000000"&cmd_dout( 62 downto 20);
+              jtag_write_back       <= cmd_dout( 63 );
+              cmd_read_state        <= DUTY_CYCLE;
             when DUTY_CYCLE =>
-              cmd_read_buffer <= cmd_dout;
-              cmd_read_state <= IDLE;       
+              cmd_read_state        <= IDLE;
             when others =>
               cmd_read_state <= IDLE;
           end case;
@@ -558,87 +527,19 @@ architecture beh of inception is
   begin
       case cmd_read_state is
         when IDLE =>
+          jtag_state_led      <= "0001";
           cmd_get       <= '0';
-          jtag_cmd_put  <= '0';
         when READ =>
+          jtag_state_led      <= "0010";
           cmd_get       <= '1';
-          jtag_cmd_put  <= '0';
-        when SAVE =>
+        when START_JTAG =>
+          jtag_state_led      <= "0100";
           cmd_get       <= '0';
-          jtag_cmd_put  <= '1';
         when others =>
+          jtag_state_led      <= "1111";
           cmd_get       <= '0';
-          jtag_cmd_put  <= '0';
       end case;
   end process cmd_read_out_logic; 
-
-  --cmd_read_buffer <= cmd_dout when (cmd_read_state = DUTY_CYCLE) else cmd_read_buffer;
-
-  jtag_cmd_din <= cmd_dout&cmd_read_buffer;
-
-  -- usb to jtag converter
-  usb_to_jtag_state_logic: process(aclk)
-  begin
-    if( aclk'event and aclk = '1' ) then
-      if( aresetn = '0' ) then
-        usb_to_jtag_state    <= RESET;
-      else 
-        case usb_to_jtag_state is
-          when RESET        =>
-            usb_to_jtag_state   <= IDLE;     
-            jtag_state_start    <= TEST_LOGIC_RESET;
-            jtag_bit_count      <= std_logic_vector(to_unsigned(0,BIT_COUNT_SIZE));
-            jtag_state_end      <= TEST_LOGIC_RESET;
-            jtag_di             <= std_logic_vector(to_unsigned(0,MAX_IO_REG_SIZE));
-            jtag_write_back     <= '0'; 
-            period              <= 63;
-          when IDLE         =>
-            if( jtag_cmd_empty = '0' and jtag_busy = '0' ) then
-              jtag_state_start      <= jtag_cmd_dout( 3 downto 0 );
-              jtag_state_end        <= jtag_cmd_dout( 7 downto 4 );
-              jtag_bit_count        <= jtag_cmd_dout( 13 downto 8 );
-              period                <= to_integer(unsigned(jtag_cmd_dout( 19 downto 14)));
-              jtag_di               <= "000000000000000000000"&jtag_cmd_dout( 62 downto 20);
-              jtag_write_back       <= jtag_cmd_dout( 63 );
-              usb_to_jtag_state     <= EXEC;
-            end if;
-          when EXEC =>
-            usb_to_jtag_state   <= DUTY_CYCLE;
-          when DUTY_CYCLE         =>
-            usb_to_jtag_state   <= IDLE;
-          when others       =>
-            usb_to_jtag_state   <= IDLE;
-        end case;   
-      end if;  
-    end if;
-  end process usb_to_jtag_state_logic;
-
-  -- USB to JTAG converter
-  usb_to_jtag_out_logic: process(usb_to_jtag_state)
-  begin   
-    case usb_to_jtag_state is
-      when RESET     => 
-          jtag_state_led      <= (others=> '0');
-          jtag_cmd_dec        <= '0';
-          jtag_shift_strobe   <= '0';
-      when IDLE      =>
-          jtag_state_led      <= "0001";
-          jtag_cmd_dec        <= '0';
-          jtag_shift_strobe   <= '0';
-      when DUTY_CYCLE=>
-          jtag_state_led      <= "0010";
-          jtag_cmd_dec        <= '0';
-          jtag_shift_strobe   <= '0';
-      when EXEC      =>
-          jtag_state_led      <= "0100";
-          jtag_cmd_dec        <= '1';
-          jtag_shift_strobe   <= '1';
-      when others =>
-          jtag_state_led      <= "1111";
-          jtag_cmd_dec        <= '0';
-          jtag_shift_strobe   <= '0';
-    end case;
-  end process usb_to_jtag_out_logic;
 
   jtag_ctrl_mater_inst: JTAG_Ctrl_Master
     port map(
