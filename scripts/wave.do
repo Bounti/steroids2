@@ -5,7 +5,6 @@ add wave -noupdate /inception_tb/aclk
 add wave -noupdate /inception_tb/aresetn
 add wave -noupdate -divider {fpga debug io}
 add wave -noupdate /inception_tb/led
-add wave -noupdate /inception_tb/jtag_state_led
 add wave -noupdate -divider {jtag interface}
 add wave -noupdate /inception_tb/TDO
 add wave -noupdate /inception_tb/TCK
@@ -57,8 +56,12 @@ add wave -noupdate /inception_tb/dut/jtag_shift_strobe
 add wave -noupdate /inception_tb/dut/jtag_busy
 add wave -noupdate /inception_tb/dut/jtag_di
 add wave -noupdate /inception_tb/dut/jtag_do
+add wave -noupdate /inception_tb/dut/jtag_write_back
 add wave -noupdate -divider {cmd fifo reader}
 add wave -noupdate /inception_tb/dut/cmd_read_state
+add wave -noupdate -divider {Write Back Logic}
+add wave -noupdate /inception_tb/dut/write_back_pending
+add wave -noupdate /inception_tb/dut/write_back_logic_state
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {0 ns} 0}
 quietly wave cursor active 1

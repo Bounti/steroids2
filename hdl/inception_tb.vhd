@@ -34,8 +34,7 @@ architecture beh of inception_tb is
     aclk:       in std_logic;  -- Clock
     aresetn:    in std_logic;  -- Synchronous, active low, reset
     
-    led:            out std_logic_vector(3 downto 0); -- LEDs
-    jtag_state_led: out std_logic_vector(3 downto 0);
+    led:            out std_logic_vector(7 downto 0); -- LEDs
     
     irq_in: in std_logic;
     irq_ack: out std_logic;
@@ -84,8 +83,7 @@ architecture beh of inception_tb is
     signal aclk:        std_logic;  -- Clock
     signal aresetn:     std_logic;  -- Synchronous, active low, reset
     
-    signal led:             std_logic_vector(3 downto 0); -- LEDs
-    signal jtag_state_led:  std_logic_vector(3 downto 0);
+    signal led:             std_logic_vector(7 downto 0); -- LEDs
     
     signal irq_in, irq_ack:    std_logic;
     ----------------------
@@ -126,7 +124,6 @@ architecture beh of inception_tb is
     aresetn => aresetn,
     
     led => led,
-    jtag_state_led => jtag_state_led,
     
     irq_in => irq_in,
     irq_ack => irq_ack,

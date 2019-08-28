@@ -108,8 +108,8 @@ connect_bd_net [get_bd_pins /usb2jtag_0/slrd_rdy] [get_bd_ports slrd_rdy]
 create_bd_port -dir O -from 3 -to 0 led
 connect_bd_net [get_bd_pins /usb2jtag_0/led] [get_bd_ports led]
 
-create_bd_port -dir O -from 3 -to 0 jtag_state_led
-connect_bd_net [get_bd_pins /usb2jtag_0/jtag_state_led] [get_bd_ports jtag_state_led]
+#create_bd_port -dir O -from 3 -to 0 jtag_state_led
+#connect_bd_net [get_bd_pins /usb2jtag_0/jtag_state_led] [get_bd_ports jtag_state_led]
 
 # Synthesis flow
 validate_bd_design
@@ -129,10 +129,10 @@ array set ios {
 	"led[1]"        { "T21"  "LVCMOS33" }
 	"led[2]"        { "U22"  "LVCMOS33" }
 	"led[3]"        { "U21"  "LVCMOS33" }
-	"jtag_state_led[3]"   { "U14"  "LVCMOS33" }
-	"jtag_state_led[2]"   { "U19"  "LVCMOS33" }
-	"jtag_state_led[1]"   { "W22"  "LVCMOS33" }
-	"jtag_state_led[0]"   { "V22"  "LVCMOS33" }
+	"led[7]"   { "U14"  "LVCMOS33" }
+	"led[6]"   { "U19"  "LVCMOS33" }
+	"led[5]"   { "W22"  "LVCMOS33" }
+	"led[4]"   { "V22"  "LVCMOS33" }
         "clk_out"       { "M19"  "LVCMOS25" }
         "sloe"          { "G21"  "LVCMOS25" }
         "slop"          { "G20"  "LVCMOS25" }
@@ -141,38 +141,38 @@ array set ios {
         "slrd_rdy"      { "C22"  "LVCMOS25" }
         "sladdr[0]"     { "B21"  "LVCMOS25" }
         "sladdr[1]"     { "B22"  "LVCMOS25" }
-        "fdata[0]"      { "L18"  "LVCMOS25" }
-        "fdata[1]"      { "P17"  "LVCMOS25" }
-        "fdata[2]"      { "P18"  "LVCMOS25" }
-        "fdata[3]"      { "M21"  "LVCMOS25" }
-        "fdata[4]"      { "M22"  "LVCMOS25" }
-        "fdata[5]"      { "T16"  "LVCMOS25" }
-        "fdata[6]"      { "T17"  "LVCMOS25" }
-        "fdata[7]"      { "N17"  "LVCMOS25" }
-        "fdata[8]"      { "N18"  "LVCMOS25" }
-        "fdata[9]"      { "J16"  "LVCMOS25" }
-        "fdata[10]"     { "J17"  "LVCMOS25" }
-        "fdata[11]"     { "G15"  "LVCMOS25" }
-        "fdata[12]"     { "G16"  "LVCMOS25" }
-        "fdata[13]"     { "E19"  "LVCMOS25" }
-        "fdata[14]"     { "E20"  "LVCMOS25" }
-        "fdata[15]"     { "A18"  "LVCMOS25" }
-        "fdata[16]"     { "A19"  "LVCMOS25" }
-        "fdata[17]"     { "A16"  "LVCMOS25" }
-        "fdata[18]"     { "A17"  "LVCMOS25" }
-        "fdata[19]"     { "C15"  "LVCMOS25" }
-        "fdata[20]"     { "B15"  "LVCMOS25" }
-        "fdata[21]"     { "A21"  "LVCMOS25" }
-        "fdata[22]"     { "A22"  "LVCMOS25" }
-        "fdata[23]"     { "D18"  "LVCMOS25" }
-        "fdata[24]"     { "C19"  "LVCMOS25" }
-        "fdata[25]"     { "N22"  "LVCMOS25" }
-        "fdata[26]"     { "P22"  "LVCMOS25" }
-        "fdata[27]"     { "J21"  "LVCMOS25" }
-        "fdata[28]"     { "J22"  "LVCMOS25" }
-        "fdata[29]"     { "P20"  "LVCMOS25" }
-        "fdata[30]"     { "P21"  "LVCMOS25" }
-        "fdata[31]"     { "J20"  "LVCMOS25" }
+        "fdata[24]"      { "L18"  "LVCMOS25" }
+        "fdata[25]"      { "P17"  "LVCMOS25" }
+        "fdata[26]"      { "P18"  "LVCMOS25" }
+        "fdata[27]"      { "M21"  "LVCMOS25" }
+        "fdata[28]"      { "M22"  "LVCMOS25" }
+        "fdata[29]"      { "T16"  "LVCMOS25" }
+        "fdata[30]"      { "T17"  "LVCMOS25" }
+        "fdata[31]"      { "N17"  "LVCMOS25" }
+        "fdata[16]"      { "N18"  "LVCMOS25" }
+        "fdata[17]"      { "J16"  "LVCMOS25" }
+        "fdata[18]"     { "J17"  "LVCMOS25" }
+        "fdata[19]"     { "G15"  "LVCMOS25" }
+        "fdata[20]"     { "G16"  "LVCMOS25" }
+        "fdata[21]"     { "E19"  "LVCMOS25" }
+        "fdata[22]"     { "E20"  "LVCMOS25" }
+        "fdata[23]"     { "A18"  "LVCMOS25" }
+        "fdata[8]"     { "A19"  "LVCMOS25" }
+        "fdata[9]"     { "A16"  "LVCMOS25" }
+        "fdata[10]"     { "A17"  "LVCMOS25" }
+        "fdata[11]"     { "C15"  "LVCMOS25" }
+        "fdata[12]"     { "B15"  "LVCMOS25" }
+        "fdata[13]"     { "A21"  "LVCMOS25" }
+        "fdata[14]"     { "A22"  "LVCMOS25" }
+        "fdata[15]"     { "D18"  "LVCMOS25" }
+        "fdata[0]"     { "C19"  "LVCMOS25" }
+        "fdata[1]"     { "N22"  "LVCMOS25" }
+        "fdata[2]"     { "P22"  "LVCMOS25" }
+        "fdata[3]"     { "J21"  "LVCMOS25" }
+        "fdata[4]"     { "J22"  "LVCMOS25" }
+        "fdata[5]"     { "P20"  "LVCMOS25" }
+        "fdata[6]"     { "P21"  "LVCMOS25" }
+        "fdata[7]"     { "J20"  "LVCMOS25" }
         "TDI"           { "Y11"  "LVCMOS25" }
         "TRST"          { "AA8"  "LVCMOS25" }
         "TMS"           { "AA11"  "LVCMOS25" }
@@ -192,7 +192,7 @@ foreach io [ array names ios ] {
 # Timing constraints
 set clock [get_clocks]
 set_false_path -from $clock -to [get_ports {led[*]}]
-set_false_path -from $clock -to [get_ports {jtag_state_led[*]}]
+#set_false_path -from $clock -to [get_ports {jtag_state_led[*]}]
 #set_false_path -from [get_ports {irq_in]}] -to $clock
 set_false_path -from [get_ports {irq_in}] -to $clock
 

@@ -64,7 +64,7 @@ begin
                 --state.rd_ptr <= state.rd_ptr + 1;
                 state.rd_ptr <= state.rd_ptr + 2;
               end if;
-              dout <= state.ram(state.rd_ptr+1)&state.ram(state.rd_ptr);
+              dout <= state.ram(state.rd_ptr)&state.ram(state.rd_ptr+1);
             end if;
           when others =>
             if(put='1' and get='0')then

@@ -17,8 +17,7 @@ entity inception is
     aclk:       in std_logic;  -- Clock
     aresetn:    in std_logic;  -- Synchronous, active low, reset
 
-    led:            out std_logic_vector(3 downto 0); -- LEDs
-    jtag_state_led: out std_logic_vector(3 downto 0);
+    led:            out std_logic_vector(7 downto 0); -- LEDs
 
     irq_in:         in std_logic;
     irq_ack:        out std_logic;
@@ -158,10 +157,9 @@ architecture beh of inception is
   type cmd_read_state_t is (IDLE,READ,START_JTAG,DUTY_CYCLE);
   signal cmd_read_state : cmd_read_state_t;
   
-  signal jtag_do_buffer: std_logic_vector(MAX_IO_REG_SIZE - 1 downto 0);  
-  type write_back_logic_state_t is (IDLE,WAIT_SEQ_COMPLETION,WRITE_BACK_PART1,WRITE_BACK_PART1_WAIT,WRITE_BACK_PART2);
+  type write_back_logic_state_t is (IDLE,WAIT_SEQ_COMPLETION,WRITE_BACK_WAIT,WRITE_BACK_PART2);
   signal write_back_logic_state: write_back_logic_state_t;
-  signal write_back_ready: std_logic;
+  signal write_back_pending: std_logic;
   signal jtag_write_back   : std_logic;
 
   signal cmd_empty,data_empty,irq_empty: std_logic;
@@ -338,10 +336,11 @@ architecture beh of inception is
 	slwr_rdy_d <= slwr_rdy;
 	slwrirq_rdy_d <= slwrirq_rdy;
 	fdata_in_d <= fdata_in;
-      end if;
+     end if;
     end if;
   end process input_flops_proc;
 
+  --led <= fdata_in_d(31 downto 24);
 
   -- state machine
   cmd_din <= fdata_in_d;
@@ -436,36 +435,31 @@ architecture beh of inception is
     if( aclk'event and aclk = '1' ) then
       if( aresetn = '0' ) then
         write_back_logic_state <= IDLE;
-        write_back_ready <= '0';
-        data_put <= '0';
+        data_put               <= '0';
+        write_back_pending     <= '0';
       else 
         case write_back_logic_state is
           when IDLE =>
-            if( jtag_busy = '1' ) then
+            if( jtag_write_back = '1' and jtag_busy = '1' ) then
+              write_back_pending     <= '1';
               write_back_logic_state <= WAIT_SEQ_COMPLETION;
-              write_back_ready <= '0';
             end if;
             data_put <= '0';
           WHEN WAIT_SEQ_COMPLETION =>
-            if( jtag_busy = '0' and jtag_write_back = '1' ) then
+            if( jtag_busy = '0' ) then
               -- Start first write back of tdo
-              jtag_do_buffer <= jtag_do(MAX_IO_REG_SIZE-1 downto 0);
-              write_back_logic_state <= WRITE_BACK_PART1; 
-            elsif( jtag_busy = '0' and jtag_write_back = '0' ) then
-              write_back_logic_state <= IDLE;
-            end if;
-          WHEN WRITE_BACK_PART1 =>
-            data_din <= jtag_do_buffer(31 downto 0);
-            data_put <= '1';
-            write_back_logic_state <= WRITE_BACK_PART1_WAIT;
-          WHEN WRITE_BACK_PART1_WAIT =>
+              data_din               <= jtag_do(31 downto 0);
+              data_put               <= '1';
+              write_back_logic_state <= WRITE_BACK_WAIT; 
+            end if; 
+          WHEN WRITE_BACK_WAIT =>
             data_put <= '0';
             write_back_logic_state <= WRITE_BACK_PART2;
           WHEN WRITE_BACK_PART2 =>
-            data_din <= jtag_do_buffer(MAX_IO_REG_SIZE-1 downto 32);
-            data_put <= '1';
+            data_din               <= jtag_do(63 downto 32);
+            data_put               <= '1';
+            write_back_pending     <= '0';
             write_back_logic_state <= IDLE;
-            write_back_ready <= '1';
         end case;
       end if;
     end if;
@@ -498,7 +492,7 @@ architecture beh of inception is
           case cmd_read_state is
             when IDLE =>
               jtag_shift_strobe   <= '0';
-              if( cmd_empty = '0' and jtag_busy  = '0' ) then
+              if( cmd_empty = '0' and jtag_busy  = '0' and write_back_pending = '0' ) then
                 cmd_read_state <= READ;
               end if;
             when READ =>
@@ -523,20 +517,20 @@ architecture beh of inception is
   end process cmd_read_state_logic;
 
   -- cmd_read_out_logic set the outputs of the cmd_read_state_logic process
-  cmd_read_out_logic: process(cmd_read_state)
+  cmd_read_out_logic: process(cmd_read_state, jtag_do)
   begin
       case cmd_read_state is
         when IDLE =>
-          jtag_state_led      <= "0001";
+          led           <= jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
           cmd_get       <= '0';
         when READ =>
-          jtag_state_led      <= "0010";
+          led           <= jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
           cmd_get       <= '1';
         when START_JTAG =>
-          jtag_state_led      <= "0100";
+          led           <= jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
           cmd_get       <= '0';
         when others =>
-          jtag_state_led      <= "1111";
+          led           <= jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
           cmd_get       <= '0';
       end case;
   end process cmd_read_out_logic; 
@@ -545,7 +539,6 @@ architecture beh of inception is
     port map(
       CLK          => aclk,
       aresetn      => aresetn,
-      --daisy_normal_n => daisy_normal_n,
       period       => 32,
       BitCount     => jtag_bit_count,
       Shift_Strobe => jtag_shift_strobe,
@@ -571,7 +564,7 @@ architecture beh of inception is
   );
 
   -- LED outputs
-  led <= jtag_state_current;
+  --led <= jtag_state_current;
 
 end architecture beh;
 

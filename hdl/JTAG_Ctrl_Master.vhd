@@ -143,7 +143,7 @@ begin
 --		else
 --		  dout_shift_reg(34) <= TDO;
 --		end
-                shift_reg_loop: for i in 1 to 34 loop
+                shift_reg_loop: for i in 1 to 35 loop
                   dout_shift_reg(i-1) <= dout_shift_reg(i);
                 end loop shift_reg_loop;
               end if;
