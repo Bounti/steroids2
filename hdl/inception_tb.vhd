@@ -13,11 +13,22 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.math_real.all;
 
 USE std.textio.all;
 use ieee.std_logic_textio.all; 
 
 entity inception_tb is
+  procedure rand_int( variable seed1, seed2 : inout positive; min, max : in integer; result : out integer) is
+    variable rand      : real;
+    variable val_range : real;
+  begin
+    assert (max >= min) report "Rand_int: Range Error" severity Failure;
+      
+    uniform(seed1, seed2, rand);
+    val_range := real(Max - Min + 1);
+    result := integer( trunc(rand * val_range )) + min;
+  end procedure;
 end entity inception_tb;
 
 
@@ -208,13 +219,27 @@ architecture beh of inception_tb is
   end process;
 
   jtag_slave_stub_proc: process(TCK)
+    variable seed1, seed2 : positive := 1587437;
+    variable input_int    : integer;
     variable loop_back_data: std_logic;
+    variable round: std_logic := '0';
   begin
+    rand_int(seed1, seed2,  0, 1, input_int);
+  
+    --TDO <= std_logic( to_unsigned( input_int, 1));
+    
     if(TCK'event and TCK='1')then
       loop_back_data := TDI;
     elsif(TCK'event and TCK='0')then
-      TDO <= loop_back_data;
+      if( input_int = 1) then
+        round := '0';
+      else 
+        round := '1';
+      end if;
+      TDO <= round;
+      --TDO <= loop_back_data;
     end if;
+
   end process;
   
   ----------------------------
