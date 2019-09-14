@@ -67,9 +67,11 @@ begin
               dout <= state.ram(state.rd_ptr)&state.ram(state.rd_ptr+1);
             end if;
           when others =>
-            if(put='1' and get='0')then
+            if(put='1')then
               state.cnt <= state.cnt + 1;
-            elsif(put='0' and get='1')then
+            end if;
+            
+            if(get='1')then
               state.cnt <= state.cnt - 2;
             end if;
         end case;
