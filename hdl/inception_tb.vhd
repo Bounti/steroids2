@@ -1,6 +1,6 @@
 --
 -- Copyright (C) Telecom ParisTech
--- 
+--
 -- This file must be used under the terms of the CeCILL. This source
 -- file is licensed as described in the file COPYING, which you should
 -- have received as part of this distribution. The terms are also
@@ -16,7 +16,7 @@ use ieee.numeric_std.all;
 use ieee.math_real.all;
 
 USE std.textio.all;
-use ieee.std_logic_textio.all; 
+use ieee.std_logic_textio.all;
 
 entity inception_tb is
   procedure rand_int( variable seed1, seed2 : inout positive; min, max : in integer; result : out integer) is
@@ -24,7 +24,7 @@ entity inception_tb is
     variable val_range : real;
   begin
     assert (max >= min) report "Rand_int: Range Error" severity Failure;
-      
+
     uniform(seed1, seed2, rand);
     val_range := real(Max - Min + 1);
     result := integer( trunc(rand * val_range )) + min;
@@ -34,19 +34,19 @@ end entity inception_tb;
 
 
 architecture beh of inception_tb is
-  
+
   component inception is
   Generic (
     PERIOD_RANGE    : natural := 63;
     BIT_COUNT_SIZE  : natural := 6;
-    MAX_IO_REG_SIZE : natural := 64       
+    MAX_IO_REG_SIZE : natural := 64
   );
   Port (
     aclk:       in std_logic;  -- Clock
     aresetn:    in std_logic;  -- Synchronous, active low, reset
-    
+
     led:            out std_logic_vector(7 downto 0); -- LEDs
-    
+
     irq_in: in std_logic;
     irq_ack: out std_logic;
     ----------------------
@@ -62,13 +62,13 @@ architecture beh of inception_tb is
     -----------------------
     -- slave fifo master --
     -----------------------
-    clk_out	   : out std_logic;                               ---output clk 100 Mhz and 180 phase shift 
-    fdata          : inout std_logic_vector(31 downto 0);         
+    clk_out	   : out std_logic;                               ---output clk 100 Mhz and 180 phase shift
+    fdata          : inout std_logic_vector(31 downto 0);
     sladdr         : out std_logic_vector(1 downto 0);
     sloe	   : out std_logic;                               ---output output enable select
     slop	   : out std_logic;                               ---output write select
     slwrirq_rdy	   : in std_logic;
-    slwr_rdy	   : in std_logic;                                
+    slwr_rdy	   : in std_logic;
     slrd_rdy	   : in std_logic
 
   );
@@ -90,12 +90,12 @@ architecture beh of inception_tb is
     dout:  out std_logic_vector(width-1 downto 0)
   );
   end component;
- 
+
     signal aclk:        std_logic;  -- Clock
     signal aresetn:     std_logic;  -- Synchronous, active low, reset
-    
+
     signal led:             std_logic_vector(7 downto 0); -- LEDs
-    
+
     signal irq_in, irq_ack:    std_logic;
     ----------------------
     -- jtag ctrl master --
@@ -109,14 +109,14 @@ architecture beh of inception_tb is
     -----------------------
     -- slave fifo master --
     -----------------------
-    signal clk_out	   :  std_logic;                               ---output clk 100 Mhz and 180 phase shift 
-    signal fdata          :  std_logic_vector(31 downto 0);         
+    signal clk_out	   :  std_logic;                               ---output clk 100 Mhz and 180 phase shift
+    signal fdata          :  std_logic_vector(31 downto 0);
     signal sladdr         :  std_logic_vector(1 downto 0);
     signal sloe	   :  std_logic;                               ---output output enable select
     signal slop	   :  std_logic;                               ---output write select
-        
-    signal slwrirq_rdy	   :  std_logic;                                
-    signal slwr_rdy	   :  std_logic;                                
+
+    signal slwrirq_rdy	   :  std_logic;
+    signal slwr_rdy	   :  std_logic;
     signal slrd_rdy	   :  std_logic;
 
     type fx3_state_t is (reset,idle,read,write);
@@ -127,15 +127,15 @@ architecture beh of inception_tb is
     signal rcv_get,rcv_put_00,rcv_put_01,rcv_empty,rcv_full_00,rcv_full_01 : std_logic;
     signal snd_din,snd_dout,rcv_din,rcv_dout  : std_logic_vector(31 downto 0);
  begin
-  
+
 -- period <= 3; -- small value for simulation, for real code chose 15 so that jtag freq ~3MHz
- dut: inception 
+ dut: inception
   port map(
     aclk => aclk,
     aresetn => aresetn,
-    
+
     led => led,
-    
+
     irq_in => irq_in,
     irq_ack => irq_ack,
     ----------------------
@@ -143,15 +143,15 @@ architecture beh of inception_tb is
     ----------------------
    -- period        => period,
     TDO		  => TDO,
-    TCK		  => TCK, 
+    TCK		  => TCK,
     TMS		  => TMS,
     TDI		  => TDI,
-    TRST   => TRST,    
+    TRST   => TRST,
 
     -----------------------
     -- slave fifo master --
     -----------------------
-    clk_out	=> clk_out,  
+    clk_out	=> clk_out,
     fdata   => fdata,
     sladdr  => sladdr,
     sloe	   => sloe,
@@ -159,9 +159,9 @@ architecture beh of inception_tb is
     slwrirq_rdy       => slwrirq_rdy,
     slwr_rdy       => slwr_rdy,
     slrd_rdy       => slrd_rdy
-    
+
   );
- 
+
  slwrirq_rdy <= '0';
 
  aresetn <= '0', '1' after 15 ns;
@@ -184,6 +184,20 @@ architecture beh of inception_tb is
 --   end loop irq_loop;
 --   wait;
 -- end process;
+
+-- o_jtag_do_proc: process(TCK)
+--   file output_file: text open write_mode is "./io/jtag_do.csv";
+--   variable row: line;
+--   variable cond2: std_logic;
+--   variable cond1: std_logic;
+--   begin
+--     cond1 := '1' when work.inception_tb.dut.write_back_logic_state=WAIT_SEQ_COMPLETION else '0';  
+--     cond2 := '1' when work.inception_tb.dut.write_back_logic_state=WRITE_BACK_PART2 else '0';  
+--     if(TCK'event and TCK='1') then
+--       write(row, time'image(work.inception_tb.dut.jtag_do));
+--       writeline(output_file, row);
+--     end if;
+--   end process;
 
  o_csv_proc: process(TCK)
    file output_file: text open write_mode is "./io/data.csv";
@@ -209,7 +223,7 @@ architecture beh of inception_tb is
     variable output_line: line;
     variable output_data: std_logic_vector(1 downto 0);
   begin
- 
+
     if(TCK'event and TCK='1')then
       output_data := TMS&TDI;
       write(output_line,output_data);
@@ -225,15 +239,15 @@ architecture beh of inception_tb is
     variable round: std_logic := '0';
   begin
     rand_int(seed1, seed2,  0, 1, input_int);
-  
+
     --TDO <= std_logic( to_unsigned( input_int, 1));
-    
+
     if(TCK'event and TCK='1')then
       loop_back_data := TDI;
     elsif(TCK'event and TCK='0')then
       if( input_int = 1) then
         round := '0';
-      else 
+      else
         round := '1';
       end if;
       TDO <= round;
@@ -241,7 +255,7 @@ architecture beh of inception_tb is
     end if;
 
   end process;
-  
+
   ----------------------------
   -- simulate the fx3 gpif2 --
   ----------------------------
@@ -309,8 +323,8 @@ architecture beh of inception_tb is
       end if;
     end if;
   end process fx3_proc;
-  
-  
+
+
   --------------------------------------------------------
   -- local fifo to store commands reveived from the host --
   --------------------------------------------------------
@@ -367,7 +381,7 @@ architecture beh of inception_tb is
       din      => rcv_din,
       dout     => rcv_dout
     );
- 
+
   --------------------------------------------------
   -- simulate host by taking commands from a file --
   --------------------------------------------------

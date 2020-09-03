@@ -155,12 +155,9 @@ architecture beh of inception is
   );
   end component;
 
-  type cmd_read_state_t is (IDLE,READ,START_JTAG,DUTY_CYCLE,DUTY_CYCLE2);
+  type cmd_read_state_t is (IDLE,READ,START_JTAG,WAIT_START,WAIT_COMPLETION,CHECK_FOR_READBACK,PREPARE_READBACK,DO_READBACK,PREPARE_SECOND_READBACK,DO_SECOND_READBACK);
   signal cmd_read_state : cmd_read_state_t;
   
-  type write_back_logic_state_t is (IDLE,WAIT_SEQ_COMPLETION,WRITE_BACK_WAIT,WRITE_BACK_PART2);
-  signal write_back_logic_state: write_back_logic_state_t;
-  signal write_back_pending: std_logic;
   signal jtag_write_back   : std_logic;
 
   signal cmd_empty,data_empty,irq_empty: std_logic;
@@ -187,25 +184,7 @@ architecture beh of inception is
   signal irq_id_addr: std_logic_vector(31 downto 0);
 
  begin
-
-  -----------------------------
-  -- irq address --------------
-  -----------------------------
-  --irq_id_addr_proc: process(aclk)
-  --begin
-  --  if(aclk'event and aclk='1')then
-  --    if(aresetn='0')then
-  --      if(daisy_normal_n='1')then
-  --        irq_id_addr <= IRQ_ID_ADDR_DEFAULT_STM32L152RE;
-	--else
-  --        irq_id_addr <= IRQ_ID_ADDR_DEFAULT_LPC1850;
-	--end if;
-  --    elsif(btn1_re='1')then
-  --      irq_id_addr <= std_logic_vector(r);
-  --    end if;
-  --  end if;
-  --end process irq_id_addr_proc;
-
+  
   -----------------------------
   -- synchronize irq_in line --
   -----------------------------
@@ -236,19 +215,19 @@ architecture beh of inception is
 	irq_state <= idle;
       else
         case irq_state is
-	  when idle =>
-	    if(irq_sync='1')then
-	      irq_state <= forward_event;
-	    end if;
-	  when forward_event =>
-	      irq_state <= done;
-	  when done =>
-	    if(irq_sync='0')then
-	      irq_state <= idle;
-	    end if;
-	  when others =>
-	    irq_state <= done;
-	end case;
+    	    when idle =>
+	          if(irq_sync='1')then
+	            irq_state <= forward_event;
+	          end if;
+	        when forward_event =>
+	          irq_state <= done;
+	        when done =>
+	          if(irq_sync='0')then
+	            irq_state <= idle;
+	          end if;
+	        when others =>
+	          irq_state <= done;
+	       end case;
       end if;
     end if;
   end process irq_fsm_proc;
@@ -329,14 +308,14 @@ architecture beh of inception is
     if(aclk'event and aclk='1')then
       if(aresetn='0')then
         slrd_rdy_d <= '0';
-	slwr_rdy_d <= '0';
-	slwrirq_rdy_d <= '0';
-	fdata_in_d <= (others=>'0');
+	      slwr_rdy_d <= '0';
+	      slwrirq_rdy_d <= '0';
+	      fdata_in_d <= (others=>'0');
       else
         slrd_rdy_d <= slrd_rdy;
-	slwr_rdy_d <= slwr_rdy;
-	slwrirq_rdy_d <= slwrirq_rdy;
-	fdata_in_d <= fdata_in;
+      	slwr_rdy_d <= slwr_rdy;
+	      slwrirq_rdy_d <= slwrirq_rdy;
+	      fdata_in_d <= fdata_in;
      end if;
     end if;
   end process input_flops_proc;
@@ -355,117 +334,75 @@ architecture beh of inception is
     if(aclk'event and aclk='1')then
       if(aresetn='0')then
         sl_state <= idle;
-	slop <= '0';
-	sloe <= '0';
-	tristate_en_n <= '1';
-	sladdr <= "00";
-	sl_is_irq <= '0';
-      else
-        case sl_state is
-	  when idle =>
-	    if(slwrirq_rdy_d='1' and irq_empty='0')then
-              sl_state <= prepare_write_irq;
-	      sladdr <= "01";
-	      sl_is_irq <= '1';
-	    elsif(slwr_rdy_d='1' and data_empty='0')then
-	      sl_state <= prepare_write_data;
+	      slop <= '0';
+	      sloe <= '0';
+	      tristate_en_n <= '1';
 	      sladdr <= "00";
 	      sl_is_irq <= '0';
-	    elsif(slrd_rdy_d='1' and cmd_full='0')then
-	      sl_state <= prepare_read;
-	      sladdr <= "11";
-	      sl_is_irq <= '0';
-	    end if;
-	  when prepare_read =>
+      else
+        case sl_state is
+	        when idle =>
+	          if(slwrirq_rdy_d='1' and irq_empty='0')then
+              sl_state <= prepare_write_irq;
+	            sladdr <= "01";
+	            sl_is_irq <= '1';
+	          elsif(slwr_rdy_d='1' and data_empty='0')then
+	            sl_state <= prepare_write_data;
+	            sladdr <= "00";
+	            sl_is_irq <= '0';
+	          elsif(slrd_rdy_d='1' and cmd_full='0')then
+	            sl_state <= prepare_read;
+	            sladdr <= "11";
+	            sl_is_irq <= '0';
+	          end if;
+	        when prepare_read =>
             sl_state <= read1;
-	    slop <= '1';
-	    sloe <= '1';
+	          slop <= '1';
+	          sloe <= '1';
           when prepare_write_data =>
-	    sl_state <= write0;
-	    tristate_en_n <= '0';
-	  when prepare_write_irq =>
-	    sl_state <= write0;
-	    tristate_en_n <= '0';
-	  when read1 =>
-	    sl_state <= read2;
-	    slop <= '0';
-	  when read2 =>
-	    sl_state <= read3;
-	  when read3 =>
-	    sl_state <= read4;
-	  when read4 =>
-	    sl_state <= read5;
-	    sloe <= '0';
-	  when read5 =>
-	    sl_state <= idle;
-	 -- when read6 =>
-	 --   sl_state <= read7;
-	 -- when read7 =>
-	 --   sl_state <= read8;
-	 -- when read8 =>
-	 --   sl_state <= idle;
-	  when write0 =>
-	    sl_state <= write1;
-	    slop <= '1';
-	  when write1 =>
-	    sl_state <= write2;
-	    slop <= '0';
-	    tristate_en_n <= '1';
+	          sl_state <= write0;
+	          tristate_en_n <= '0';
+	        when prepare_write_irq =>
+	          sl_state <= write0;
+	          tristate_en_n <= '0';
+	        when read1 =>
+	          sl_state <= read2;
+	          slop <= '0';
+	        when read2 =>
+	          sl_state <= read3;
+	        when read3 =>
+	          sl_state <= read4;
+	        when read4 =>
+	          sl_state <= read5;
+	          sloe <= '0';
+	        when read5 =>
+	          sl_state <= idle;
+	       -- when read6 =>
+	       --   sl_state <= read7;
+	       -- when read7 =>
+	       --   sl_state <= read8;
+	       -- when read8 =>
+	       --   sl_state <= idle;
+	        when write0 =>
+	          sl_state <= write1;
+	          slop <= '1';
+	        when write1 =>
+	          sl_state <= write2;
+	          slop <= '0';
+	          tristate_en_n <= '1';
           when write2 =>
-	    sl_state <= idle;
-	  when others =>
-	    sl_state <= idle;
-	    slop <= '0';
-	    sloe <= '0';
-	    tristate_en_n <= '1';
-	    sladdr <= "00";
+	          sl_state <= idle;
+	        when others =>
+	          sl_state <= idle;
+	          slop <= '0';
+	          sloe <= '0';
+	          tristate_en_n <= '1';
+	          sladdr <= "00";
         end case;
       end if;
     end if;
   end process fx3_sl_master_fsm_proc;
  
-  -- This state machine read back TDO bits that are sent to 
-  -- the data fifo and then forwarded to the FX3.
-  -- We do not need to check if the fifo is full here as 
-  -- the jtag state machine will not start a jtag command 
-  -- if the fifo has not enough space. We need to backup 
-  -- TDO as the jtag state machine does not wait for read 
-  -- read back completion.
-  write_back_logic: process(aclk)
-  begin
-    if( aclk'event and aclk = '1' ) then
-      if( aresetn = '0' ) then
-        write_back_logic_state <= IDLE;
-        data_put               <= '0';
-        --write_back_pending     <= '0';
-      else 
-        case write_back_logic_state is
-          when IDLE =>
-            if( jtag_write_back = '1' ) then
-              --write_back_pending     <= '1';
-              write_back_logic_state <= WAIT_SEQ_COMPLETION;
-            end if;
-            data_put <= '0';
-          WHEN WAIT_SEQ_COMPLETION =>
-            if( jtag_busy = '0' and data_full = '0' ) then
-              -- Start first write back of tdo
-              data_din               <= jtag_do(31 downto 0);
-              data_put               <= '1';
-              write_back_logic_state <= WRITE_BACK_WAIT; 
-            end if; 
-          WHEN WRITE_BACK_WAIT =>
-            data_put <= '0';
-            write_back_logic_state <= WRITE_BACK_PART2;
-          WHEN WRITE_BACK_PART2 =>
-            data_din               <= jtag_do(63 downto 32);
-            data_put               <= '1';
-            --write_back_pending     <= '0';
-            write_back_logic_state <= IDLE;
-        end case;
-      end if;
-    end if;
-  end process write_back_logic;
-
   -- cmd_read_state_logic is in charge of poping jtag commands 
   -- from the cmd_fifo. The cmd_fifo receives 32bits commands however 
   -- the jtag fsm process 64bits commands. So, this fsm pop jtag commands
@@ -494,7 +431,7 @@ architecture beh of inception is
           case cmd_read_state is
             when IDLE =>
               jtag_shift_strobe   <= '0';
-              if( cmd_empty = '0' and jtag_busy = '0' and write_back_logic_state = IDLE ) then
+              if( cmd_empty = '0' and jtag_busy = '0' ) then
                 cmd_read_state <= READ;
               end if;
               jtag_write_back     <= '0'; 
@@ -509,34 +446,99 @@ architecture beh of inception is
               --period                <= to_integer(unsigned(cmd_dout( 19 downto 14)));
               jtag_di               <= "000000000000000000000"&cmd_dout( 62 downto 20);
               jtag_write_back       <= cmd_dout( 63 );
-              cmd_read_state        <= DUTY_CYCLE;
-            when DUTY_CYCLE =>
-              cmd_read_state        <= DUTY_CYCLE2;
-            when DUTY_CYCLE2 =>
-              cmd_read_state        <= IDLE;
+              cmd_read_state        <= WAIT_START;
+            when WAIT_START      =>
+              if( jtag_busy = '1' ) then
+                cmd_read_state <= WAIT_COMPLETION;
+              end if;
+            when WAIT_COMPLETION =>
+              if( jtag_busy = '0' ) then
+                cmd_read_state <= CHECK_FOR_READBACK;
+              end if;
+            when CHECK_FOR_READBACK =>
+              if( jtag_write_back = '1' ) then
+                  cmd_read_state      <= PREPARE_READBACK;
+              else
+                  cmd_read_state      <= IDLE;
+              end if;
+            when PREPARE_READBACK =>
+              if( data_full = '1' ) then
+                cmd_read_state        <= PREPARE_READBACK;
+              else
+                cmd_read_state        <= DO_READBACK;
+              end if;
+            when DO_READBACK         =>
+                cmd_read_state          <= PREPARE_SECOND_READBACK;
+            when PREPARE_SECOND_READBACK         =>
+              if( data_full = '1' ) then
+                cmd_read_state        <= PREPARE_SECOND_READBACK;
+              else
+                cmd_read_state        <= DO_SECOND_READBACK;
+              end if;
+            when DO_SECOND_READBACK         =>
+                cmd_read_state          <= IDLE;
             when others =>
-              cmd_read_state <= IDLE;
+              cmd_read_state <= IDLE;        
           end case;
       end if;
     end if;
   end process cmd_read_state_logic;
 
+  --led <= cmd_empty&cmd_full&data_empty&data_full&irq_empty&irq_full&jtag_write_back&write_back_pending;
+  led(4 downto 0)   <= slrd_rdy_d&slwr_rdy_d&slwrirq_rdy_d&jtag_busy&data_full;
+
+  data_din  <= jtag_do(63 downto 32) when cmd_read_state = DO_SECOND_READBACK else jtag_do(31 downto 0);
+
+	irq_din <= (others=>'1');
+
   -- cmd_read_out_logic set the outputs of the cmd_read_state_logic process
-  cmd_read_out_logic: process(cmd_read_state, jtag_do)
+  cmd_read_out_logic: process(cmd_read_state)
   begin
       case cmd_read_state is
         when IDLE =>
-          led           <= cmd_empty&cmd_full&data_empty&data_full&irq_empty&irq_full&jtag_write_back&write_back_pending; --jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
-          cmd_get       <= '0';
+          led(7 downto 5)<= "100";
+          cmd_get        <= '0';
+          data_put       <= '0';
         when READ =>
-          led           <= cmd_empty&cmd_full&data_empty&data_full&irq_empty&irq_full&jtag_write_back&write_back_pending; --jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
-          cmd_get       <= '1';
+          led(7 downto 5)<= "010";
+          cmd_get        <= '1';
+          data_put       <= '0';
         when START_JTAG =>
-          led           <= cmd_empty&cmd_full&data_empty&data_full&irq_empty&irq_full&jtag_write_back&write_back_pending; --jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
-          cmd_get       <= '0';
+          led(7 downto 5)<= "110";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when WAIT_START =>
+          led(7 downto 5)<= "101";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when WAIT_COMPLETION =>
+          led(7 downto 5)<= "101";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when CHECK_FOR_READBACK =>
+          led(7 downto 5)<= "101";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when PREPARE_READBACK =>
+          led(7 downto 5)<= "111";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when DO_READBACK =>
+          led(7 downto 5)<= "111";
+          cmd_get        <= '0';
+          data_put       <= '1';
+        when PREPARE_SECOND_READBACK =>
+          led(7 downto 5)<= "111";
+          cmd_get        <= '0';
+          data_put       <= '0';
+        when DO_SECOND_READBACK =>
+          led(7 downto 5)<= "111";
+          cmd_get        <= '0';
+          data_put       <= '1';
         when others =>
-          led           <= cmd_empty&cmd_full&data_empty&data_full&irq_empty&irq_full&jtag_write_back&write_back_pending; --jtag_do(7 downto 0); --  jtag_state_end&jtag_state_start;
-          cmd_get       <= '0';
+          led(7 downto 5)<= "000";
+          cmd_get        <= '0';
+          data_put       <= '0';
       end case;
   end process cmd_read_out_logic; 
 
